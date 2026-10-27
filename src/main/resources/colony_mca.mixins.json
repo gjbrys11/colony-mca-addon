@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.colonymca.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["SpawnQueueMixin", "CitizenHappinessMixin", "CitizenDataMixin", "CitizenActorMixin", "ReproductionMixin", "DialoguePacketMixin", "VillagerDataPacketMixin", "ActorInteractionsMixin", "WalkAnimationStateAccessor"],
+  "client": ["InteractScreenMixin", "CitizenWindowMixin", "CitizenWindowLayoutMixin", "SidebarDialogueMixin", "CitizenDebugWindowMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

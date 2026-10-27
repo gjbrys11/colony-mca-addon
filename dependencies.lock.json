@@ -1,0 +1,14 @@
+{
+  "minecraft": "1.21.1",
+  "neoforge": "21.1.233",
+  "java": 21,
+  "artifacts": [
+    {"file":"mca-7.7.36-neoforge.jar","url":"https://cdn.modrinth.com/data/1W98a849/versions/S2Ln2tIn/mca-neoforge-7.7.36-beta.3%2B1.21.1.jar","sha256":"DE4763D34A41CB84FFA392B87CDB23191BEDDDA2323B56552A1A2FCD7C436FC3"},
+    {"file":"minecolonies-1.1.1403.jar","url":"https://ldtteam.jfrog.io/artifactory/modding/com/ldtteam/minecolonies/1.1.1403-1.21.1/minecolonies-1.1.1403-1.21.1.jar","sha256":"C8D4373FFC8A76638C8EDF2BB6716F9209599032209C48D0D559B787F69A0561"},
+    {"file":"structurize-1.0.832-1.21.1-snapshot.jar","url":"https://ldtteam.jfrog.io/artifactory/modding/com/ldtteam/structurize/1.0.832-1.21.1-snapshot/structurize-1.0.832-1.21.1-snapshot.jar","sha256":"BE51434644A96C3B9D3DB4E000D7E802C057A0E9BEC98C919BEB9492927489A5"},
+    {"file":"blockui-1.0.199-1.21.1-snapshot.jar","url":"https://ldtteam.jfrog.io/artifactory/modding/com/ldtteam/blockui/1.0.199-1.21.1-snapshot/blockui-1.0.199-1.21.1-snapshot.jar","sha256":"238B2E9FDA99620318DFA9197754B3F803FFF73F7F711F1065AC900D2E4EE9EF"},
+    {"file":"multipiston-1.2.51-1.21.1-snapshot.jar","url":"https://ldtteam.jfrog.io/artifactory/modding/com/ldtteam/multipiston/1.2.51-1.21.1-snapshot/multipiston-1.2.51-1.21.1-snapshot.jar","sha256":"D0EAFB395FDF1E6962B5CB127F26488124DC7D5008361B164576423820F3782E"},
+    {"file":"domum-ornamentum-1.0.223-snapshot-main.jar","url":"https://ldtteam.jfrog.io/artifactory/modding/com/ldtteam/domum-ornamentum/1.0.223-snapshot/domum-ornamentum-1.0.223-snapshot-main.jar","sha256":"E208671D86050BD49E48B9524DFA12F1F642EFEFC8FA31EFF88EF24709D31F83"},
+    {"file":"domum-ornamentum-1.0.223-snapshot-api.jar","url":"https://ldtteam.jfrog.io/artifactory/modding/com/ldtteam/domum-ornamentum/1.0.223-snapshot/domum-ornamentum-1.0.223-snapshot-api.jar","sha256":"E488986A20249C266F19CFCC29032B3745FCE8B579D6D99FF7708E481733529C"}
+  ]
+}
