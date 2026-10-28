@@ -53,6 +53,25 @@ public final class McaSidebarModule implements IWindowModule {
     private int y;
     private final List<Pane> traitTooltips = new ArrayList<>();
 
+    /** Navigation tabs stay clickable even where parchment or a transient tooltip overlaps them. */
+    public static boolean clickNavigation(AbstractWindowSkeleton window, double x, double y) {
+        var panel = window.findPaneByID(PANEL_ID);
+        if (panel != null) {
+            for (String id : List.of("colony_mca_attributes_tab", "colony_mca_social_tab")) {
+                var tab = window.findPaneByID(id);
+                double localX = x - panel.getX(), localY = y - panel.getY();
+                if (tab != null && tab.canHandleClick(localX, localY)) return tab.click(localX, localY);
+            }
+        }
+        for (String page : List.of("main", "request", "inventory", "happiness", "family", "job", "debug")) {
+            for (String suffix : List.of("Icon", "Tab")) {
+                var tab = window.findPaneByID(page + suffix);
+                if (tab != null && tab.canHandleClick(x, y)) return tab.click(x, y);
+            }
+        }
+        return false;
+    }
+
     public McaSidebarModule(AbstractWindowSkeleton window, ICitizenDataView citizen) {
         this.window = window;
         this.citizen = citizen;
@@ -97,11 +116,11 @@ public final class McaSidebarModule implements IWindowModule {
             scroll = new ScrollingView();
             scroll.setPosition(10, 33); scroll.setSize(150, height - 92); panel.addChild(scroll);
             var attributesTab = button(Component.translatable("colony_mca.sidebar.attributes"), 10, height - 51, 72, () -> {
-                social = false; talking = false; render();
+                social = false; talking = false; scroll.setScrollY(0); render();
             });
             attributesTab.setID("colony_mca_attributes_tab"); panel.addChild(attributesTab);
             var socialTab = button(Component.translatable("colony_mca.sidebar.social"), 87, height - 51, 72, () -> {
-                social = true; talking = false; render();
+                social = true; talking = false; scroll.setScrollY(0); render();
             });
             socialTab.setID("colony_mca_social_tab"); panel.addChild(socialTab);
             var hint = new Text(); hint.setText(Component.translatable("colony_mca.sidebar.hint"));
@@ -207,7 +226,7 @@ public final class McaSidebarModule implements IWindowModule {
             action(Component.translatable("colony_mca.sidebar.back"), () -> { talking = false; render(); });
             return;
         }
-        action(Component.translatable("gui.button.talk"), this::startDialogue);
+        action(Component.translatable("gui.button.talk"), this::startDialogue).setID("colony_mca_action_talk");
         action(Component.translatable("colony_mca.sidebar.gift_held"), () -> command("gift"));
         if (villager.canTradeWithProfession() && !villager.asEntity().isBaby())
             action(Component.translatable("gui.button.trade"), () -> command("trade"));
@@ -246,7 +265,7 @@ public final class McaSidebarModule implements IWindowModule {
     }
 
     private static Component name(String text) { return text.isBlank() ? Component.translatable("colony_mca.sidebar.none") : Component.literal(text); }
-    private void value(String key, Component value) { line(Component.translatable("colony_mca.sidebar." + key).append(": ").append(value)); }
+    private void value(String key, Component value) { line(Component.translatable("colony_mca.sidebar." + key).append(": ").append(value)).setID("colony_mca_value_" + key); }
 
     private Text line(Component component) {
         var text = new Text();
@@ -257,8 +276,10 @@ public final class McaSidebarModule implements IWindowModule {
         return text;
     }
 
-    private void action(Component text, Runnable action) {
-        scroll.getContainer().addChild(button(text, 2, y, 138, action)); y += 24;
+    private ButtonImage action(Component text, Runnable action) {
+        var button = button(text, 2, y, 138, action);
+        scroll.getContainer().addChild(button); y += 24;
+        return button;
     }
 
     private static ButtonImage button(Component text, int x, int y, int width, Runnable action) {

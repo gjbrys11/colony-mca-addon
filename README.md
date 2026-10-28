@@ -1,11 +1,11 @@
 # Colony MCA（开发版）
 
-## 下载 0.3.0-dev
+## 下载 0.3.1-dev
 
-- [附属 mod JAR](https://github.com/gjbrys11/colony-mca-addon/raw/refs/heads/main/downloads/0.3.0-dev/colony-mca-addon-0.3.0-dev.jar)
-- [安装压缩包](https://github.com/gjbrys11/colony-mca-addon/raw/refs/heads/main/downloads/0.3.0-dev/colony-mca-addon-0.3.0-dev.zip)
-- [源码压缩包](https://github.com/gjbrys11/colony-mca-addon/raw/refs/heads/main/downloads/0.3.0-dev/colony-mca-addon-0.3.0-dev-sources.zip)
-- [SHA256 校验值](downloads/0.3.0-dev/SHA256SUMS.txt)
+- [附属 mod JAR](https://github.com/gjbrys11/colony-mca-addon/raw/refs/heads/main/downloads/0.3.1-dev/colony-mca-addon-0.3.1-dev.jar)
+- [安装压缩包](https://github.com/gjbrys11/colony-mca-addon/raw/refs/heads/main/downloads/0.3.1-dev/colony-mca-addon-0.3.1-dev.zip)
+- [源码压缩包](https://github.com/gjbrys11/colony-mca-addon/raw/refs/heads/main/downloads/0.3.1-dev/colony-mca-addon-0.3.1-dev-sources.zip)
+- [SHA256 校验值](downloads/0.3.1-dev/SHA256SUMS.txt)
 
 将 JAR 放入客户端与服务端的 `mods` 文件夹，移除旧版附属 mod，然后重启。需要自行安装下列固定版本的两个主 mod 及其前置；压缩包仅包含本附属 mod。当前为开发版，安装前请备份存档。
 
@@ -47,7 +47,7 @@ $env:JAVA_HOME = 'C:\Program Files\Java\jdk-21'
 .\gradlew.bat build
 ```
 
-下载地址和 SHA256 记录在 `dependencies.lock.json`。构建产物为 `build/libs/colony-mca-addon-0.3.0-dev.jar`，需要客户端与服务端同时安装。
+下载地址和 SHA256 记录在 `dependencies.lock.json`。构建产物为 `build/libs/colony-mca-addon-0.3.1-dev.jar`，需要客户端与服务端同时安装。
 
 0.3.0 修复社交计时、交易成长、行动指令与家谱同步，详见 CHANGELOG.md；完整验收边界见 TESTING.md。
 
@@ -82,5 +82,6 @@ $env:JAVA_HOME = 'C:\Program Files\Java\jdk-21'
 ## 授权与来源
 
 附属项目使用 GPL-3.0-only。MCA 模型及贴图在运行时从已安装 MCA 引用，本项目没有复制其贴图。MCA 菜单 JSON 由附属包覆盖。Gradle Wrapper 来自上游工程；双方上游均有自己的许可证和署名，使用及分发上游构建时应保留其许可信息。
+
 
 

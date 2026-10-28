@@ -70,7 +70,22 @@ public final class ClientUiSmoke {
                 if (stage < 4 && (screen.getWindow().getWidth() != 384 || screen.getWindow().findPaneByID("mainIcon").getX() != 179))
                     throw new AssertionError("Native colony navigation moved or sidebar width incorrect");
                 if (stage == 0) {
-                    ((com.ldtteam.blockui.controls.Button) screen.getWindow().findPaneByID("colony_mca_social_tab")).handleClick(0, 0);
+                    var overlay = new com.ldtteam.blockui.views.View();
+                    overlay.setID("click_regression_overlay"); overlay.setSize(170, 20);
+                    screen.getWindow().addChild(overlay);
+                    overlay.setPosition(0, screen.getWindow().getHeight() - 51);
+                    for (int attempt = 0; attempt < 3; attempt++) {
+                        clickThroughWindow("colony_mca_social_tab");
+                        if (screen.getWindow().findPaneByID("colony_mca_action_talk") == null
+                                || screen.getWindow().findPaneByID("colony_mca_value_profession") != null)
+                            throw new AssertionError("Social tab did not replace attribute content");
+                        clickThroughWindow("colony_mca_attributes_tab");
+                        if (screen.getWindow().findPaneByID("colony_mca_value_profession") == null
+                                || screen.getWindow().findPaneByID("colony_mca_action_talk") != null)
+                            throw new AssertionError("Attributes tab did not replace social content");
+                    }
+                    clickThroughWindow("colony_mca_social_tab");
+                    screen.getWindow().removeChild(overlay);
                     stage = 1; captureAt = ticks + 25;
                 } else if (stage == 1) {
                     McaSidebarModule.current().startDialogue();
@@ -80,15 +95,20 @@ public final class ClientUiSmoke {
                             new net.conczin.mca.network.s2c.InteractionDialogueResponse("main", List.of("chat", "joke", "story")));
                     stage = 2; captureAt = ticks + 25;
                 } else if (stage == 2) {
-                    new com.minecolonies.core.client.gui.citizen.HappinessWindowCitizen(fixture).open();
+                    clickThroughWindow("happinessIcon");
+                    if (!( ((com.ldtteam.blockui.BOScreen) mc.screen).getWindow() instanceof com.minecolonies.core.client.gui.citizen.HappinessWindowCitizen))
+                        throw new AssertionError("Clicking happiness navigation did not open its page");
                     stage = 3; captureAt = ticks + 25;
                 } else if (stage == 3) {
+                    clickThroughWindow("mainIcon");
+                    if (!(((com.ldtteam.blockui.BOScreen) mc.screen).getWindow() instanceof MainWindowCitizen))
+                        throw new AssertionError("Clicking main navigation did not return to attributes");
                     new com.minecolonies.core.debug.gui.DebugWindowCitizen(fixture).open();
                     stage = 4; captureAt = ticks + 25;
                 } else {
                     if (!screen.getWindow().findPaneOfTypeByID("aihistory", com.ldtteam.blockui.controls.Button.class)
                             .getText().getString().equals("查询行为历史")) throw new AssertionError("Debug label not translated");
-                    Files.writeString(Path.of("../build/ui-smoke/result.txt"), "PASS: main, social, embedded dialogue, happiness and Chinese debug screens rendered; native navigation positions verified");
+                    Files.writeString(Path.of("../build/ui-smoke/result.txt"), "PASS: five screens rendered; screen-coordinate clicks switch social and attributes repeatedly under overlays; native navigation edge clicks open the correct pages");
                     mc.stop();
                 }
             }
@@ -98,6 +118,29 @@ public final class ClientUiSmoke {
             catch (Exception ignored) {}
             mc.stop();
         }
+    }
+
+    private static void clickThroughWindow(String id) {
+        var screen = (com.ldtteam.blockui.BOScreen) Minecraft.getInstance().screen;
+        var window = screen.getWindow();
+        var button = window.findPaneByID(id);
+        double x = id.endsWith("Icon") ? button.getWidth() - 2.0 : button.getWidth() / 2.0;
+        double y = button.getHeight() / 2.0;
+        for (com.ldtteam.blockui.Pane pane = button; pane != null; pane = pane.getParent()) {
+            x += pane.getX(); y += pane.getY();
+        }
+        var hit = window.findPaneForClick(x, y);
+        ColonyMca.LOGGER.info("UI click {} at {},{} hits {} ({})", id, x, y,
+                hit == null ? "null" : hit.getID(), hit == null ? "null" : hit.getClass().getSimpleName());
+        double scale = screen.getRenderScale();
+        double guiScale = screen.getVanillaGuiScale();
+        var display = Minecraft.getInstance().getWindow();
+        double originX = Math.floor((display.getWidth() - window.getWidth() * scale) / 2.0);
+        double originY = Math.floor((display.getHeight() - window.getHeight() * scale) / 2.0);
+        double mouseX = (originX + x * scale) / guiScale;
+        double mouseY = (originY + y * scale) / guiScale;
+        if (!screen.mouseClicked(mouseX, mouseY, 0)) throw new AssertionError("Click was not handled: " + id);
+        screen.mouseReleased(mouseX, mouseY, 0);
     }
 
     private static void openFixture(Minecraft mc) throws Exception {
