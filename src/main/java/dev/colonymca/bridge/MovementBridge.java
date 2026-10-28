@@ -38,7 +38,18 @@ public final class MovementBridge {
         if (!(data instanceof CitizenMcaData bridge)) return;
         var control = bridge.colonyMca$getControl();
         if (!control.contains("movement")) return;
-        if (citizen.getTarget() != null || (citizen.getLastHurtByMob() != null
+        if (control.getString("movement").equals("FOLLOW") && (!control.hasUUID("leader")
+                || citizen.level().getPlayerByUUID(control.getUUID("leader")) == null)) {
+            if (control.contains("previousPaused")) data.setPaused(control.getBoolean("previousPaused"));
+            control.remove("movement"); control.remove("leader"); control.remove("previousPaused");
+            bridge.colonyMca$setControl(control);
+            citizen.getNavigation().stop();
+            ((CitizenMcaActor) citizen).colonyMca$actor().getVillagerBrain().setMoveState(MoveState.MOVE, null);
+            ((CitizenMcaActor) citizen).colonyMca$flush();
+            data.markDirty(0);
+            return;
+        }
+        if ((citizen.getTarget() != null && citizen.getTarget().isAlive()) || (citizen.getLastHurtByMob() != null
                 && citizen.tickCount - citizen.getLastHurtByMobTimestamp() < 100)) {
             data.setPaused(control.getBoolean("previousPaused"));
             return; // Colony combat takes priority over player movement commands.

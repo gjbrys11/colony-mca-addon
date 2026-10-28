@@ -1,7 +1,12 @@
-param([string]$Version = '0.2.1-dev')
+param([string]$Version)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
 $projectRoot = Split-Path $PSScriptRoot -Parent
+if (!$Version) {
+    $versionLine = Get-Content -LiteralPath (Join-Path $projectRoot 'gradle.properties') | Where-Object { $_ -match '^mod_version=' }
+    $Version = ($versionLine -split '=', 2)[1].Trim()
+}
+if ($Version -notmatch '^[0-9A-Za-z][0-9A-Za-z.+-]*$') { throw 'Invalid release version' }
 $output = Join-Path $projectRoot "build/release/$Version"
 $null = New-Item -ItemType Directory -Force -Path $output
 $jarName = "colony-mca-addon-$Version.jar"
@@ -27,12 +32,12 @@ foreach ($directory in @('src', 'gradle', 'tools')) {
         $sources += @{ Source=$file.FullName; Name=[IO.Path]::GetRelativePath($projectRoot, $file.FullName).Replace('\','/') }
     }
 }
-foreach ($name in @('.gitignore', 'build.gradle', 'settings.gradle', 'gradle.properties', 'gradlew', 'gradlew.bat', 'dependencies.lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md')) {
+foreach ($name in @('.gitignore', 'build.gradle', 'settings.gradle', 'gradle.properties', 'gradlew', 'gradlew.bat', 'dependencies.lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'TESTING.md')) {
     $sources += @{ Source=(Join-Path $projectRoot $name); Name=$name }
 }
 Write-Zip (Join-Path $output "colony-mca-addon-$Version-sources.zip") $sources
 $runtime = @(@{ Source=$jarPath; Name="mods/$jarName" })
-foreach ($name in @('README.md', 'CHANGELOG.md', 'LICENSE', 'dependencies.lock.json')) {
+foreach ($name in @('README.md', 'CHANGELOG.md', 'TESTING.md', 'LICENSE', 'dependencies.lock.json')) {
     $runtime += @{ Source=(Join-Path $projectRoot $name); Name=$name }
 }
 Write-Zip (Join-Path $output "colony-mca-addon-$Version.zip") $runtime

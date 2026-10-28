@@ -42,6 +42,19 @@ public final class FamilyBridge {
         entry.setName(data.getName());
         entry.setDeceased(false);
         var members = data.getColony().getCitizenManager().getCitizens();
+        // Colony numeric IDs can be reused after death. MCA UUIDs remain the source of family identity.
+        var previous = new java.util.HashSet<>(data.getChildren());
+        previous.addAll(data.getSiblings());
+        for (int id : previous) {
+            var member = members.stream().filter(c -> c.getId() == id).findFirst().orElse(null);
+            boolean child = member != null && entry.children().contains(member.getUUID());
+            boolean sibling = member != null && entry.siblings().contains(member.getUUID());
+            if ((data.getChildren().contains(id) && !child) || (data.getSiblings().contains(id) && !sibling)) data.onDeath(id);
+        }
+        var father = tree.getOrEmpty(entry.father());
+        var mother = tree.getOrEmpty(entry.mother());
+        if (father.isPresent() || mother.isPresent()) data.setParents(
+                father.map(FamilyTreeNode::getName).orElse(""), mother.map(FamilyTreeNode::getName).orElse(""));
         int partnerId = members.stream().filter(c -> c.getUUID().equals(entry.partner()))
                 .mapToInt(ICitizenData::getId).findFirst().orElse(0);
         if ((data.getPartner() == null ? 0 : data.getPartner().getId()) != partnerId) data.setPartner(partnerId);

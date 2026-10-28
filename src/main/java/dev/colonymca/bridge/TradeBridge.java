@@ -16,6 +16,30 @@ public final class TradeBridge {
 
     private TradeBridge() {}
 
+    /** Advance only vanilla's delayed career update; never run MCA or vanilla world AI. */
+    public static void advanceCareer(VillagerEntityMCA actor) {
+        var customer = actor.getTradingPlayer();
+        if (customer != null && (!customer.isAlive() || customer.isRemoved() || customer.level() != actor.level()
+                || customer.distanceToSqr(actor) > 64)) {
+            actor.setTradingPlayer(null);
+            if (customer instanceof net.minecraft.server.level.ServerPlayer player) player.closeContainer();
+        }
+        var access = (dev.colonymca.mixin.VillagerTradeAccessor) actor;
+        int level = actor.getVillagerData().getLevel();
+        if (access.colonyMca$getTradeTimer() <= 0 && net.minecraft.world.entity.npc.VillagerData.canLevelUp(level)
+                && actor.getVillagerXp() >= net.minecraft.world.entity.npc.VillagerData.getMaxXpPerLevel(level)) {
+            access.colonyMca$setTradeTimer(40);
+            access.colonyMca$setPendingLevel(true);
+        }
+        if (actor.isTrading() || access.colonyMca$getTradeTimer() <= 0) return;
+        int remaining = Math.max(0, access.colonyMca$getTradeTimer() - 20);
+        access.colonyMca$setTradeTimer(remaining);
+        if (remaining == 0 && access.colonyMca$hasPendingLevel()) {
+            access.colonyMca$increaseCareer();
+            access.colonyMca$setPendingLevel(false);
+        }
+    }
+
     public static VillagerProfession initialProfession(ICitizenData data, UUID identity) {
         String job = data == null || data.getJob() == null ? ""
                 : data.getJob().getJobRegistryEntry().getKey().getPath();

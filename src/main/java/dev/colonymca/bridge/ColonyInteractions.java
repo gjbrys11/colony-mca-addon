@@ -18,6 +18,8 @@ public final class ColonyInteractions extends VillagerCommandHandler {
     @Override public boolean handle(ServerPlayer player, String command) {
         if (player.level() != citizen.level() || player.distanceToSqr(citizen) > 64
                 || !citizen.isAlive() || citizen.getCitizenData() == null) return false;
+        if (!citizen.getCitizenData().getColony().getPermissions().hasPermission(player,
+                com.minecolonies.api.colony.permissions.Action.ACCESS_HUTS)) return false;
         // These systems belong to MineColonies. Never let a proxy change jobs or create a second inventory.
         String action = command.split("\\.", 2)[0];
         if (action.equals("procreate")) {
@@ -32,10 +34,15 @@ public final class ColonyInteractions extends VillagerCommandHandler {
         }
         if (Chore.byCommand(action).isPresent() || java.util.Set.of("sethome", "setworkplace", "inventory",
                 "hire_short", "hire_long", "execute", "pardon", "pick_up", "ridehorse", "stay_in_village",
-                "gohome").contains(action)) {
+                "gohome", "profession", "armor", "stopworking", "infected").contains(action)) {
             player.displayClientMessage(Component.translatable("colony_mca.managed_by_colony"), true);
             return false;
         }
+        if ((action.equals("divorceConfirm") || action.equals("divorcePapers"))
+                && !entity.getRelationships().isMarriedTo(player.getUUID())) return false;
+        if (action.equals("adopt") && (!citizen.isBaby()
+                || !entity.getRelationships().getFamilyEntry().getParents().allMatch(n -> n.isDeceased()))) return false;
+        if (action.equals("trade") && (citizen.isBaby() || !entity.canTradeWithProfession())) return false;
         boolean close = super.handle(player, command);
         FamilyBridge.synchronize(citizen);
         ((CitizenMcaActor) citizen).colonyMca$flush();

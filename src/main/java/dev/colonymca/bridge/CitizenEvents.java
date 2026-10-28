@@ -26,6 +26,11 @@ public final class CitizenEvents {
         if (citizen.tickCount % 20 == 0) {
             CitizenMcaActor bridge = (CitizenMcaActor) citizen;
             bridge.colonyMca$actor();
+            var state = (CitizenMcaData) citizen.getCitizenData();
+            var control = state.colonyMca$getControl();
+            SocialLifecycle.tick(bridge.colonyMca$actor(), control, citizen.level().getGameTime());
+            state.colonyMca$setControl(control);
+            TradeBridge.advanceCareer(bridge.colonyMca$actor());
             TradeBridge.tick(citizen, bridge.colonyMca$actor());
             if (citizen.tickCount % 200 == 0) FamilyBridge.synchronize(citizen);
             bridge.colonyMca$flush();

@@ -39,8 +39,13 @@ public final class CitizenMcaRenderer extends EntityRenderer<AbstractEntityCitiz
         actor.setOnGround(citizen.onGround());
         actor.setInvisible(citizen.isInvisible());
         actor.setPose(citizen.getPose());
+        actor.setShiftKeyDown(citizen.isShiftKeyDown());
+        actor.setAggressive(citizen.isAggressive());
         for (EquipmentSlot slot : EquipmentSlot.values()) actor.setItemSlot(slot, citizen.getItemBySlot(slot).copy());
-        if (citizen.isUsingItem()) actor.startUsingItem(citizen.getUsedItemHand());
+        if (citizen.isUsingItem()) {
+            actor.startUsingItem(citizen.getUsedItemHand());
+            ((dev.colonymca.mixin.LivingEntityUseAccessor) actor).colonyMca$setUseItemRemaining(citizen.getUseItemRemainingTicks());
+        }
         else actor.stopUsingItem();
         renderer.render(actor, yaw, partialTick, pose, buffer, light);
     }

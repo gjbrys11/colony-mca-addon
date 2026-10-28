@@ -31,7 +31,7 @@ public final class BirthBridge {
     public static void automatic(IColony colony) {
         if (!(colony.getWorld() instanceof ServerLevel)) return;
         List<ICitizenData> adults = new ArrayList<>(colony.getCitizenManager().getCitizens().stream()
-                .filter(c -> !c.isChild() && c.getEntity().isPresent()).toList());
+                .filter(c -> !c.isChild() && c.getEntity().filter(e -> e.isAlive()).isPresent()).toList());
         Collections.shuffle(adults);
         for (var first : adults) {
             var actor = ((CitizenMcaActor) first.getEntity().orElseThrow()).colonyMca$actor();
@@ -44,9 +44,10 @@ public final class BirthBridge {
             }
             if (!node.partner().equals(net.minecraft.Util.NIL_UUID)) continue;
             for (var second : adults) {
-                if (first == second || first.isRelatedTo(second)) continue;
+                if (first == second || first.isRelatedTo(second) || second.isRelatedTo(first)) continue;
                 var other = ((CitizenMcaActor) second.getEntity().orElseThrow()).colonyMca$actor();
                 if (!other.getRelationships().getFamilyEntry().partner().equals(net.minecraft.Util.NIL_UUID)
+                        || node.isRelative(second.getUUID()) || other.getRelationships().getFamilyEntry().isRelative(first.getUUID())
                         || other.getTraits().hasTrait(Traits.INFERTILE)
                         || !actor.canBeAttractedTo(other) || !other.canBeAttractedTo(actor)) continue;
                 if (!hasRoom(colony)) return;
@@ -84,6 +85,10 @@ public final class BirthBridge {
         child.getCitizenSkillHandler().init(colony, first, second, first.getRandom());
         child.setParents(first.getName(), secondName);
         child.generateName(first.getRandom(), first.getName(), secondName, colony.getCitizenNameFile());
+        if (!module.assignCitizen(child)) {
+            colony.getCitizenManager().removeCivilian(child);
+            return false;
+        }
         List<Integer> siblings = new ArrayList<>(first.getChildren());
         if (second != null) siblings.addAll(second.getChildren());
         child.addSiblings(siblings.toArray(Integer[]::new));
@@ -94,7 +99,6 @@ public final class BirthBridge {
         first.addChildren(child.getId());
         if (second != null) second.addChildren(child.getId());
         child.setSuffix(first.getTextureSuffix());
-        module.assignCitizen(child);
         var tree = FamilyTree.get(world);
         var childNode = tree.getOrCreate(child.getUUID(), child.getName(), child.isFemale() ? Gender.FEMALE : Gender.MALE);
         childNode.assignParent(tree.getOrCreate(first.getUUID(), first.getName(), first.isFemale() ? Gender.FEMALE : Gender.MALE));
@@ -112,6 +116,7 @@ public final class BirthBridge {
             if (childActor != null) {
                 childActor.setPos(home.getPosition().getX(), home.getPosition().getY(), home.getPosition().getZ());
                 childActor.setUUID(child.getUUID());
+                childActor.setCustomName(net.minecraft.network.chat.Component.literal(child.getName()));
                 childActor.setVillagerData(childActor.getVillagerData()
                         .setProfession(TradeBridge.initialProfession(child, child.getUUID())));
                 childActor.getGenetics().combine(firstActor.getGenetics(), secondActor.getGenetics());

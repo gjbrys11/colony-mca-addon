@@ -21,10 +21,12 @@ import java.nio.file.Path;
 /** Development-only checks. This source set is excluded from the distributed jar. */
 @EventBusSubscriber(modid = ColonyMca.ID)
 public final class ServerSmokeChecks {
+    private static int checks;
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         event.getServer().execute(() -> {
             String result;
             try {
+                checks = 0;
                 var world = event.getServer().overworld();
                 check(!Config.getInstance().overwriteOriginalVillagers, "vanilla conversion disabled");
                 check(!Config.getInstance().enableInfection, "infection disabled");
@@ -42,6 +44,8 @@ public final class ServerSmokeChecks {
                 check(world.getEntity(actor.getUUID()) == null, "no duplicate world NPC");
                 check(!actor.getSkin().isBlank(), "MCA skin initialized");
                 check(actor.getInfectionProgress() == 0, "actor uninfected");
+                verifySocialAndTrade(actor);
+                verifyMovementAndInventory(world);
                 var sourceWalk = new net.minecraft.world.entity.WalkAnimationState();
                 var targetWalk = new net.minecraft.world.entity.WalkAnimationState();
                 sourceWalk.update(0.4F, 0.3F);
@@ -120,7 +124,7 @@ public final class ServerSmokeChecks {
                     check(decodedRequest.entityId() == 81 && !decodedRequest.openPanel()
                             && new dev.colonymca.network.CitizenPanelRequest(81).openPanel(), "initial open and passive refresh are distinct");
                 } finally { networkBuffer.release(); }
-                result = "PASS: 28 server integration checks";
+                result = "PASS: " + checks + " server integration checks";
                 ColonyMca.LOGGER.info(result);
             } catch (Throwable failure) {
                 result = "FAIL: " + failure;
@@ -134,5 +138,169 @@ public final class ServerSmokeChecks {
 
     private static void check(boolean condition, String message) {
         if (!condition) throw new AssertionError(message);
+        checks++;
+    }
+
+    private static void verifySocialAndTrade(net.conczin.mca.entity.VillagerEntityMCA actor) {
+        int fatiguePeriod = Config.getInstance().interactionFatigueCooldown;
+        int giftPeriod = Config.getInstance().giftDesaturationReset;
+        try {
+            Config.getInstance().interactionFatigueCooldown = 10;
+            Config.getInstance().giftDesaturationReset = 20;
+            var id = java.util.UUID.randomUUID();
+            var memory = new net.conczin.mca.entity.ai.Memories(actor.getVillagerBrain(), 0, id);
+            memory.setHearts(80); memory.setInteractionFatigue(5);
+            var gift = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.EMERALD);
+            actor.getRelationships().getGiftSaturation().add(gift);
+            actor.getRelationships().getGiftSaturation().add(gift);
+            var clocks = new CompoundTag();
+            dev.colonymca.bridge.SocialLifecycle.tick(actor, clocks, 0);
+            dev.colonymca.bridge.SocialLifecycle.tick(actor, clocks, 9);
+            check(actor.getVillagerBrain().getMemories().get(id).getInteractionFatigue() == 5, "fatigue waits for configured cooldown");
+            dev.colonymca.bridge.SocialLifecycle.tick(actor, clocks, 10);
+            check(actor.getVillagerBrain().getMemories().get(id).getInteractionFatigue() == 4, "fatigue recovers without ticking proxy AI");
+            check(actor.getRelationships().getGiftSaturation().get(gift) == 2, "gift cooldown independent of social fatigue");
+            dev.colonymca.bridge.SocialLifecycle.tick(actor, clocks, 20);
+            check(actor.getRelationships().getGiftSaturation().get(gift) == 1, "repeated gift penalty expires");
+            var savedClocks = clocks.copy();
+            dev.colonymca.bridge.SocialLifecycle.tick(actor, savedClocks, 1000);
+            check(actor.getVillagerBrain().getMemories().get(id).getInteractionFatigue() == 0, "elapsed time catches up and clamps fatigue to zero");
+            check(actor.getRelationships().getGiftSaturation().get(gift) == 0, "elapsed recovery clears gift queue safely");
+            check(actor.getVillagerBrain().getMemories().get(id).getHearts() == 80, "clock recovery preserves earned affection");
+            memory = actor.getVillagerBrain().getMemories().get(id); memory.setInteractionFatigue(2);
+            dev.colonymca.bridge.SocialLifecycle.tick(actor, savedClocks, 1000);
+            check(actor.getVillagerBrain().getMemories().get(id).getInteractionFatigue() == 2, "same timestamp cannot recover twice");
+            dev.colonymca.bridge.SocialLifecycle.tick(actor, savedClocks, 1);
+            check(actor.getVillagerBrain().getMemories().get(id).getInteractionFatigue() == 2, "time rollback resets clocks without draining social state");
+            actor.setVillagerData(actor.getVillagerData().setProfession(net.minecraft.world.entity.npc.VillagerProfession.FARMER).setLevel(1));
+            actor.setVillagerXp(net.minecraft.world.entity.npc.VillagerData.getMaxXpPerLevel(1));
+            dev.colonymca.bridge.TradeBridge.advanceCareer(actor);
+            check(actor.getVillagerData().getLevel() == 1, "trade advancement retains vanilla delay");
+            dev.colonymca.bridge.TradeBridge.advanceCareer(actor);
+            check(actor.getVillagerData().getLevel() == 2, "merchant gains level without competing world AI");
+            check(!actor.getOffers().isEmpty(), "career advancement provides real trade offers");
+            dev.colonymca.bridge.TradeBridge.advanceCareer(actor);
+            check(actor.getVillagerData().getLevel() == 2, "trade level does not advance twice for same XP");
+            var profile = new CompoundTag(); actor.addAdditionalSaveData(profile);
+            var reloaded = net.conczin.mca.registry.EntitiesMCA.MALE_VILLAGER.create(actor.level());
+            reloaded.readAdditionalSaveData(profile);
+            check(reloaded.getVillagerData().getLevel() == 2 && reloaded.getVillagerXp() == actor.getVillagerXp(), "merchant level and XP persist after reload");
+            reloaded.setVillagerXp(net.minecraft.world.entity.npc.VillagerData.getMaxXpPerLevel(2));
+            var pending = new CompoundTag(); reloaded.addAdditionalSaveData(pending);
+            var recovered = net.conczin.mca.registry.EntitiesMCA.MALE_VILLAGER.create(actor.level());
+            recovered.readAdditionalSaveData(pending);
+            dev.colonymca.bridge.TradeBridge.advanceCareer(recovered);
+            dev.colonymca.bridge.TradeBridge.advanceCareer(recovered);
+            check(recovered.getVillagerData().getLevel() == 3, "pending trade advancement recovers after entity reload");
+            check(((net.minecraft.server.level.ServerLevel) actor.level()).getEntity(recovered.getUUID()) == null, "social and trade tests never spawn a second citizen");
+        } finally {
+            Config.getInstance().interactionFatigueCooldown = fatiguePeriod;
+            Config.getInstance().giftDesaturationReset = giftPeriod;
+        }
+    }
+
+    private static void verifyMovementAndInventory(net.minecraft.server.level.ServerLevel world) {
+        var citizen = (com.minecolonies.core.entity.citizen.EntityCitizen) ModEntities.CITIZEN.create(world);
+        var control = new java.util.concurrent.atomic.AtomicReference<>(new CompoundTag());
+        var profile = new java.util.concurrent.atomic.AtomicReference<>(new CompoundTag());
+        var paused = new java.util.concurrent.atomic.AtomicBoolean();
+        var allowed = new java.util.concurrent.atomic.AtomicBoolean(true);
+        var inventory = new com.minecolonies.api.inventory.InventoryCitizen("Integration regression", false);
+        var children = new java.util.HashSet<Integer>();
+        var siblings = new java.util.HashSet<Integer>();
+        var parents = new java.util.concurrent.atomic.AtomicReference<>(new com.minecolonies.api.util.Tuple<>("", ""));
+        var members = new java.util.ArrayList<com.minecolonies.api.colony.ICitizenData>();
+        var managerType = com.minecolonies.api.colony.managers.interfaces.ICitizenManager.class;
+        var manager = Proxy.newProxyInstance(managerType.getClassLoader(), new Class[]{managerType},
+                (proxy, method, args) -> method.getName().equals("getCitizens") ? members : null);
+        var permissionsType = com.minecolonies.api.colony.permissions.IPermissions.class;
+        var permissions = Proxy.newProxyInstance(permissionsType.getClassLoader(), new Class[]{permissionsType},
+                (proxy, method, args) -> method.getReturnType() == boolean.class ? allowed.get() : null);
+        var colony = (IColony) Proxy.newProxyInstance(IColony.class.getClassLoader(), new Class[]{IColony.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getID" -> 900002;
+                    case "getWorld" -> world;
+                    case "getPermissions" -> permissions;
+                    case "getCitizenManager" -> manager;
+                    default -> null;
+                });
+        var data = (com.minecolonies.api.colony.ICitizenData) Proxy.newProxyInstance(
+                CitizenMcaData.class.getClassLoader(), new Class[]{com.minecolonies.api.colony.ICitizenData.class, CitizenMcaData.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getId" -> 17;
+                    case "getName" -> "Integration Worker";
+                    case "getUUID" -> citizen.getUUID();
+                    case "getColony" -> colony;
+                    case "getInventory" -> inventory;
+                    case "getChildren" -> new java.util.ArrayList<>(children);
+                    case "getSiblings" -> new java.util.ArrayList<>(siblings);
+                    case "getParents" -> parents.get();
+                    case "setParents" -> { parents.set(new com.minecolonies.api.util.Tuple<>((String) args[0], (String) args[1])); yield null; }
+                    case "addChildren" -> { children.addAll(java.util.Arrays.asList((Integer[]) args[0])); yield null; }
+                    case "addSiblings" -> { siblings.addAll(java.util.Arrays.asList((Integer[]) args[0])); yield null; }
+                    case "onDeath" -> { children.remove((Integer) args[0]); siblings.remove((Integer) args[0]); yield null; }
+                    case "isPaused" -> paused.get();
+                    case "setPaused" -> { paused.set((boolean) args[0]); yield null; }
+                    case "colonyMca$getData" -> profile.get().copy();
+                    case "colonyMca$setData" -> { profile.set(((CompoundTag) args[0]).copy()); yield null; }
+                    case "colonyMca$getControl" -> control.get().copy();
+                    case "colonyMca$setControl" -> { control.set(((CompoundTag) args[0]).copy()); yield null; }
+                    default -> method.getReturnType() == boolean.class ? false : null;
+                });
+        citizen.setCivilianData(data);
+        var player = new net.minecraft.server.level.ServerPlayer(world.getServer(), world,
+                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "IntegrationTester"),
+                net.minecraft.server.level.ClientInformation.createDefault());
+        dev.colonymca.bridge.MovementBridge.command(citizen, player, net.conczin.mca.entity.ai.MoveState.FOLLOW);
+        check(paused.get() && control.get().getString("movement").equals("FOLLOW"), "follow pauses native work and records leader");
+        check(control.get().getUUID("leader").equals(player.getUUID()), "follow uses requesting player identity");
+        control.get().putLong("lastBirth", 1234);
+        dev.colonymca.bridge.MovementBridge.command(citizen, player, net.conczin.mca.entity.ai.MoveState.STAY);
+        check(paused.get() && !control.get().getBoolean("previousPaused"), "switching follow to stay preserves original work state");
+        dev.colonymca.bridge.MovementBridge.tick(citizen);
+        check(paused.get() && control.get().getString("movement").equals("STAY"), "stay remains paused with no leader online");
+        dev.colonymca.bridge.MovementBridge.command(citizen, player, net.conczin.mca.entity.ai.MoveState.MOVE);
+        check(!paused.get() && !control.get().contains("movement"), "release resumes native work");
+        check(control.get().getLong("lastBirth") == 1234, "release preserves birth and other control data");
+        paused.set(true);
+        dev.colonymca.bridge.MovementBridge.command(citizen, player, net.conczin.mca.entity.ai.MoveState.FOLLOW);
+        dev.colonymca.bridge.MovementBridge.tick(citizen);
+        check(paused.get() && !control.get().contains("movement"), "offline leader restores originally paused work state");
+        paused.set(false);
+        dev.colonymca.bridge.MovementBridge.command(citizen, player, net.conczin.mca.entity.ai.MoveState.FOLLOW);
+        dev.colonymca.bridge.MovementBridge.tick(citizen);
+        check(!paused.get() && !control.get().contains("leader"), "offline or other-dimension leader releases citizen");
+        allowed.set(false);
+        dev.colonymca.bridge.MovementBridge.command(citizen, player, net.conczin.mca.entity.ai.MoveState.STAY);
+        check(!paused.get() && !control.get().contains("movement"), "unauthorized movement cannot pause colony worker");
+        var actor = ((CitizenMcaActor) citizen).colonyMca$actor();
+        actor.getInventory().addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND, 3));
+        ((CitizenMcaActor) citizen).colonyMca$flush();
+        int diamonds = 0;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            var stack = inventory.getStackInSlot(slot);
+            if (stack.is(net.minecraft.world.item.Items.DIAMOND)) diamonds += stack.getCount();
+        }
+        check(diamonds == 3 && actor.getInventory().isEmpty(), "MCA gifts transfer to native colony inventory");
+        ((CitizenMcaActor) citizen).colonyMca$flush();
+        int after = 0;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) if (inventory.getStackInSlot(slot).is(net.minecraft.world.item.Items.DIAMOND)) after += inventory.getStackInSlot(slot).getCount();
+        check(after == diamonds, "repeated profile flush cannot duplicate gifts");
+        check(!profile.get().isEmpty(), "social profile persists alongside colony inventory");
+        members.add(data);
+        var relative = new CitizenData(18, colony); relative.setName("Relative"); members.add(relative);
+        var tree = net.conczin.mca.server.world.data.FamilyTree.get(world);
+        var entry = dev.colonymca.bridge.FamilyBridge.node(tree, data);
+        dev.colonymca.bridge.FamilyBridge.node(tree, relative).assignParent(entry);
+        dev.colonymca.bridge.FamilyBridge.synchronize(citizen);
+        check(children.contains(18), "MCA child UUID is reflected in native colony family IDs");
+        members.remove(relative);
+        var replacement = new CitizenData(18, colony); replacement.setName("Unrelated replacement"); members.add(replacement);
+        dev.colonymca.bridge.FamilyBridge.synchronize(citizen);
+        check(!children.contains(18), "reused colony numeric ID cannot inherit deceased citizen family relationship");
+        var parent = tree.getOrCreate(java.util.UUID.randomUUID(), "Renamed Parent", net.conczin.mca.entity.ai.relationship.Gender.MALE);
+        entry.assignParent(parent);
+        dev.colonymca.bridge.FamilyBridge.synchronize(citizen);
+        check(parents.get().getA().equals("Renamed Parent"), "parent names refresh from authoritative MCA family tree");
     }
 }

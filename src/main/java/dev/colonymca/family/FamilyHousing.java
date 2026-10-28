@@ -31,12 +31,18 @@ public final class FamilyHousing {
         if (citizen.getColony().getWorld() instanceof net.minecraft.server.level.ServerLevel world) {
             var tree = net.conczin.mca.server.world.data.FamilyTree.get(world);
             tree.getOrEmpty(citizen.getUUID()).ifPresent(entry -> {
-                var player = world.getServer().getPlayerList().getPlayer(entry.partner());
-                if (player != null) {
-                    boolean sameHome = home != null && player.getRespawnPosition() != null
-                            && player.getRespawnDimension().equals(world.dimension())
-                            && home.isInBuilding(player.getRespawnPosition());
-                    homes.add(sameHome ? home.getPosition() : null);
+                var ids = new java.util.HashSet<java.util.UUID>();
+                ids.add(entry.partner()); ids.add(entry.father()); ids.add(entry.mother());
+                ids.addAll(entry.children()); ids.addAll(entry.siblings());
+                ids.remove(net.minecraft.Util.NIL_UUID); ids.remove(citizen.getUUID());
+                for (var id : ids) {
+                    var player = world.getServer().getPlayerList().getPlayer(id);
+                    if (player != null) {
+                        boolean sameHome = home != null && player.getRespawnPosition() != null
+                                && player.getRespawnDimension().equals(world.dimension())
+                                && home.isInBuilding(player.getRespawnPosition());
+                        homes.add(sameHome ? home.getPosition() : null);
+                    }
                 }
             });
         }

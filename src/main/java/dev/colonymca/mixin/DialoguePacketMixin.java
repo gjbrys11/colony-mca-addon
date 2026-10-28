@@ -21,6 +21,9 @@ public abstract class DialoguePacketMixin {
         Entity entity = world.getEntity(id);
         if (entity instanceof CitizenMcaActor bridge) {
             if (!entity.isAlive() || player.distanceToSqr(entity) > 64) return null;
+            if (entity instanceof com.minecolonies.core.entity.citizen.EntityCitizen citizen
+                    && (citizen.getCitizenData() == null || !citizen.getCitizenData().getColony().getPermissions()
+                    .hasPermission(player, com.minecolonies.api.colony.permissions.Action.ACCESS_HUTS))) return null;
             return bridge.colonyMca$actor();
         }
         return entity;
