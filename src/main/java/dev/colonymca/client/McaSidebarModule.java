@@ -218,11 +218,11 @@ public final class McaSidebarModule implements IWindowModule {
         var villager = villager();
         if (villager == null) { line(Component.translatable("colony_mca.colony_not_ready")); return; }
         if (talking) {
-            if (!phrase.getString().isBlank()) line(phrase);
+            if (!phrase.getString().isBlank()) line(phrase).setID("colony_mca_dialogue_phrase");
             for (String answer : answers) action(Component.translatable(Question.getTranslationKey(question, answer)), () -> {
                 Network.sendToServer(new InteractionDialogueMessage(villager.asEntity().getUUID(), question, answer));
                 refresh();
-            });
+            }).setID("colony_mca_dialogue_answer_" + answer);
             action(Component.translatable("colony_mca.sidebar.back"), () -> { talking = false; render(); });
             return;
         }
@@ -262,6 +262,14 @@ public final class McaSidebarModule implements IWindowModule {
         phrase = villager != null && player != null
                 ? (silent ? villager.transformMessage(text) : villager.sendChatMessage(text, player)) : text;
         render(); refresh();
+    }
+
+    /** MCA sends final answers (e.g. chat.success) as ordinary chat packets instead of dialogue packets. */
+    public void chatMessage(java.util.UUID speaker, Component text) {
+        var actor = villager();
+        if (!talking || actor == null || !speaker.equals(actor.asEntity().getUUID())) return;
+        phrase = text.copy();
+        render(); refresh(); // Do not resend chat here: handleVillagerMessage already displayed it.
     }
 
     private static Component name(String text) { return text.isBlank() ? Component.translatable("colony_mca.sidebar.none") : Component.literal(text); }

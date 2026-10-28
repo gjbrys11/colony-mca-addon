@@ -35,6 +35,7 @@ public final class ClientUiSmoke {
     private static ICitizenDataView fixture;
 
     @SubscribeEvent public static void tick(ClientTickEvent.Post event) {
+        if (Boolean.getBoolean("colony_mca.uiPreview")) return; // Interactive previews use real server citizens.
         var mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
         if (!opened && mc.getSingleplayerServer() != null) {

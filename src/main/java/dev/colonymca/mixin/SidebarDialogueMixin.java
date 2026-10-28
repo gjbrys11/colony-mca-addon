@@ -4,6 +4,7 @@ import dev.colonymca.client.McaSidebarModule;
 import net.conczin.mca.network.ClientHandlerImpl;
 import net.conczin.mca.network.s2c.InteractionDialogueResponse;
 import net.conczin.mca.network.s2c.InteractionDialogueQuestionResponse;
+import net.conczin.mca.network.s2c.VillagerMessage;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -11,6 +12,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = ClientHandlerImpl.class, remap = false)
 public abstract class SidebarDialogueMixin {
+    @Inject(method = "handleVillagerMessage", at = @At("TAIL"))
+    private void colonyMca$embeddedFinalReply(VillagerMessage response, CallbackInfo ci) {
+        var sidebar = McaSidebarModule.current();
+        if (sidebar != null) sidebar.chatMessage(response.uuid(), response.message());
+    }
+
     @Inject(method = "handleDialogueResponse", at = @At("HEAD"), cancellable = true)
     private void colonyMca$embeddedDialogue(InteractionDialogueResponse response, CallbackInfo ci) {
         var sidebar = McaSidebarModule.current();

@@ -25,6 +25,7 @@ tasks.register('smokeClient', JavaExec) {
     mainClass = 'cpw.mods.bootstraplauncher.BootstrapLauncher'
     workingDir = file('run')
     systemProperty 'colony_mca.uiPreview', providers.gradleProperty('uiPreview').getOrElse('false')
+    systemProperty 'colony_mca.gameplayVerify', providers.gradleProperty('gameplayVerify').getOrElse('false')
     doFirst {
         if (!Boolean.parseBoolean(providers.gradleProperty('uiPreview').getOrElse('false'))) {
             delete file('build/ui-smoke/result.txt')

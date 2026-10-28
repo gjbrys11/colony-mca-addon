@@ -1,0 +1,3 @@
+03923874fcdc3d8e5e2ecd99d95278dec5bcf9e86bfcc7412f542a5687c0a776  colony-mca-addon-0.3.2-dev-sources.zip
+811a0c67518a601a959fff9d2f22ecf0f916181458d0ad50b1a97d34a7ce4912  colony-mca-addon-0.3.2-dev.jar
+547621bc31016181788cb8d2401b9e7cb7fc961b87475133e86896ac7ec09df0  colony-mca-addon-0.3.2-dev.zip
