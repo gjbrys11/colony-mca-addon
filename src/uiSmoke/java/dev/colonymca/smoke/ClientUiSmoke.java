@@ -89,6 +89,12 @@ public final class ClientUiSmoke {
                     screen.getWindow().removeChild(overlay);
                     stage = 1; captureAt = ticks + 25;
                 } else if (stage == 1) {
+                    clickThroughWindow("colony_mca_action_family_tree");
+                    if(!(mc.screen instanceof net.conczin.mca.client.gui.FamilyTreeScreen))
+                        throw new AssertionError("Family tree did not open native MCA screen");
+                    mc.screen.onClose();
+                    if(!(mc.screen instanceof com.ldtteam.blockui.BOScreen) || McaSidebarModule.current()==null)
+                        throw new AssertionError("Native family tree did not return to active unified colony panel");
                     McaSidebarModule.current().startDialogue();
                     net.conczin.mca.ClientProxy.getNetworkHandler().handleDialogueQuestionResponse(
                             new net.conczin.mca.network.s2c.InteractionDialogueQuestionResponse(Component.literal("你好，今天过得怎么样？"), true));

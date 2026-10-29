@@ -165,7 +165,13 @@ public final class McaSidebarModule implements IWindowModule {
         }
     }
 
-    @Override public void onClosed() { if (active.get() == this) active.clear(); }
+    @Override public void onClosed() {
+        if (talking) {
+            var actor=villager();
+            if(actor!=null) Network.sendToServer(new net.conczin.mca.network.c2s.InteractionCloseRequest(actor.asEntity().getUUID()));
+        }
+        if (active.get() == this) active.clear();
+    }
 
     private void refresh() {
         var world = Minecraft.getInstance().level;
@@ -228,6 +234,14 @@ public final class McaSidebarModule implements IWindowModule {
         }
         action(Component.translatable("gui.button.talk"), this::startDialogue).setID("colony_mca_action_talk");
         action(Component.translatable("colony_mca.sidebar.gift_held"), () -> command("gift"));
+        action(Component.translatable("gui.button.familyTree"), () -> Minecraft.getInstance().setScreen(
+                new net.conczin.mca.client.gui.FamilyTreeScreen(villager.asEntity().getUUID()) {
+                    @Override public void onClose() {
+                        super.onClose();
+                        McaSidebarModule.this.onOpened();
+                    }
+                }))
+                .setID("colony_mca_action_family_tree");
         if (villager.canTradeWithProfession() && !villager.asEntity().isBaby())
             action(Component.translatable("gui.button.trade"), () -> command("trade"));
         if (summary().getBoolean("marriedToViewer") && !villager.asEntity().isBaby())

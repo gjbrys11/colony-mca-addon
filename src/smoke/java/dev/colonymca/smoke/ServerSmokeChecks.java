@@ -124,6 +124,14 @@ public final class ServerSmokeChecks {
                     check(decodedRequest.entityId() == 81 && !decodedRequest.openPanel()
                             && new dev.colonymca.network.CitizenPanelRequest(81).openPanel(), "initial open and passive refresh are distinct");
                 } finally { networkBuffer.release(); }
+                var letter = new net.conczin.mca.server.world.data.PlayerSaveData.Letter("Acceptance letter",
+                        java.util.List.of(net.minecraft.network.chat.Component.literal("悼念信正文保存检查")));
+                var encode = letter.getClass().getDeclaredMethod("toTag", net.minecraft.core.HolderLookup.Provider.class);
+                encode.setAccessible(true);
+                var encoded = (CompoundTag) encode.invoke(letter, world.registryAccess());
+                var loadedLetter = new net.conczin.mca.server.world.data.PlayerSaveData.Letter(encoded, world.registryAccess());
+                check(loadedLetter.pages().size() == 1 && loadedLetter.pages().getFirst().getString().equals("悼念信正文保存检查"),
+                        "native MCA letter pages survive serialization and reload");
                 result = "PASS: " + checks + " server integration checks";
                 ColonyMca.LOGGER.info(result);
             } catch (Throwable failure) {

@@ -19,6 +19,23 @@ import java.util.List;
 public final class BirthBridge {
     private BirthBridge() {}
 
+    /** MCA's cake gift still owns gift feedback/consumption; births use native colony population. */
+    public static boolean npcBirth(com.minecolonies.core.entity.citizen.EntityCitizen parent) {
+        if (parent.isBaby() || !parent.isAlive() || parent.getCitizenData() == null) return false;
+        var actor = ((CitizenMcaActor) parent).colonyMca$actor();
+        var colony = parent.getCitizenData().getColony();
+        var partner = colony.getCitizenManager().getCitizens().stream()
+                .filter(c -> c.getUUID().equals(actor.getRelationships().getFamilyEntry().partner())).findFirst().orElse(null);
+        if (partner == null || partner.isChild() || partner.getEntity().filter(e -> e.isAlive()).isEmpty()
+                || actor.getTraits().hasTrait(Traits.INFERTILE)
+                || !actor.getRelationships().isMarriedTo(partner.getUUID())) return false;
+        var other = ((CitizenMcaActor) partner.getEntity().orElseThrow()).colonyMca$actor();
+        // Colony isRelatedTo includes spouses, so MCA's blood-relative check is authoritative here.
+        if (!other.getRelationships().isMarriedTo(parent.getUUID())
+                || actor.getRelationships().getFamilyEntry().isRelative(partner.getUUID())) return false;
+        return create(colony, parent.getCitizenData(), partner, null);
+    }
+
     public static boolean playerBirth(com.minecolonies.core.entity.citizen.EntityCitizen parent, ServerPlayer player) {
         var actor = ((CitizenMcaActor) parent).colonyMca$actor();
         if (parent.isBaby() || !actor.getRelationships().isMarriedTo(player.getUUID())
@@ -52,6 +69,7 @@ public final class BirthBridge {
                         || !actor.canBeAttractedTo(other) || !other.canBeAttractedTo(actor)) continue;
                 if (!hasRoom(colony)) return;
                 actor.getRelationships().marry(other);
+                other.getRelationships().marry(actor);
                 first.setPartner(second.getId()); second.setPartner(first.getId());
                 if (create(colony, first, second, null)) return;
             }

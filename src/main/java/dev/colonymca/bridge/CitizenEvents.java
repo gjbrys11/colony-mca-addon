@@ -41,7 +41,8 @@ public final class CitizenEvents {
         if (!(event.getEntity() instanceof EntityCitizen citizen)
                 || !(citizen.level() instanceof net.minecraft.server.level.ServerLevel world)
                 || citizen.getCitizenData() == null) return;
-        ((CitizenMcaActor) citizen).colonyMca$actor();
+        // Use MCA's relationship effects without its separate tombstone/death pipeline.
+        ((CitizenMcaActor) citizen).colonyMca$actor().getRelationships().onTragedy(event.getSource(), null);
         ((CitizenMcaActor) citizen).colonyMca$flush();
         net.conczin.mca.server.world.data.FamilyTree.get(world).getOrEmpty(citizen.getUUID())
                 .ifPresent(node -> node.setDeceased(true));

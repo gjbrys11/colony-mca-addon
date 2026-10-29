@@ -25,6 +25,10 @@ import java.util.UUID;
 /** Interactive fixture with a real integrated-server colony, buildings, job and network identity. */
 @EventBusSubscriber(modid = ColonyMca.ID, value = Dist.CLIENT)
 public final class GameplayPreview {
+    public static boolean verified() { return phase == 7; }
+    public static boolean ready() { return citizenId != null; }
+    public static UUID citizenIdentity() { return citizenId; }
+    public static int colonyIdentity() { return colonyId; }
     private static int ticks;
     private static boolean starting;
     private static boolean opened;
@@ -36,6 +40,7 @@ public final class GameplayPreview {
     private static net.minecraft.world.phys.Vec3 movementStart;
     private static boolean answerSent;
     private static boolean introductionAnswered;
+    private static boolean greetingAnswered;
     private static String beforeChat = "";
     private static int dialogueTicks;
     private static final BlockPos CENTER = new BlockPos(128, 80, 128);
@@ -71,7 +76,7 @@ public final class GameplayPreview {
                 }
             }
         }
-        if (opened && Boolean.getBoolean("colony_mca.gameplayVerify")) {
+        if (opened && Boolean.getBoolean("colony_mca.gameplayVerify") && !Boolean.getBoolean("colony_mca.extendedVerify")) {
             try {
                 var module = dev.colonymca.client.McaSidebarModule.current();
                 if (phase == 0 && module != null) {
@@ -85,6 +90,11 @@ public final class GameplayPreview {
                                 answer != null, phrase == null ? "<missing>" : phrase.getText().getString(), beforeChat);
                     }
                     var introduction = screen.getWindow().findPaneByID("colony_mca_dialogue_answer_exploring");
+                    var greeting = screen.getWindow().findPaneByID("colony_mca_dialogue_answer_kind");
+                    if (!greetingAnswered && greeting instanceof com.ldtteam.blockui.controls.Button button) {
+                        greetingAnswered = true;
+                        button.handleClick(0, 0);
+                    }
                     if (!introductionAnswered && introduction instanceof com.ldtteam.blockui.controls.Button button) {
                         introductionAnswered = true;
                         button.handleClick(0, 0);
@@ -115,7 +125,7 @@ public final class GameplayPreview {
     }
 
     @SubscribeEvent public static void serverTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
-        if (!Boolean.getBoolean("colony_mca.gameplayVerify") || citizenId == null || phase == 0 || phase >= 7) return;
+        if (Boolean.getBoolean("colony_mca.extendedVerify") || !Boolean.getBoolean("colony_mca.gameplayVerify") || citizenId == null || phase == 0 || phase >= 7) return;
         try {
             if (++phaseTicks > 600) throw new AssertionError("Gameplay verification timed out at phase " + phase);
             var world = event.getServer().overworld();
@@ -221,6 +231,11 @@ public final class GameplayPreview {
             throw new IllegalStateException("Native citizen did not spawn");
         citizen.setPos(128.5, 80, 127.5);
         ((CitizenMcaActor) citizen).colonyMca$actor();
+        if (Boolean.getBoolean("colony_mca.gameplayVerify")) {
+            var actor=((CitizenMcaActor)citizen).colonyMca$actor();
+            while(!actor.getRelationships().getGiftSaturation().toNbt().isEmpty()) actor.getRelationships().getGiftSaturation().pop();
+            actor.getVillagerBrain().getMemoriesForPlayer(player).setInteractionFatigue(0);
+        }
         dev.colonymca.bridge.MovementBridge.command(citizen, player, net.conczin.mca.entity.ai.MoveState.MOVE);
         data.setPaused(false);
         ((CitizenMcaActor) citizen).colonyMca$flush();
@@ -235,7 +250,7 @@ public final class GameplayPreview {
                 data.getJob().getJobRegistryEntry().getKey());
     }
 
-    private static com.minecolonies.api.colony.buildings.IBuilding building(com.minecolonies.api.colony.IColony colony, BlockPos pos, Block block) {
+    static com.minecolonies.api.colony.buildings.IBuilding building(com.minecolonies.api.colony.IColony colony, BlockPos pos, Block block) {
         var old = colony.getServerBuildingManager().getBuilding(pos);
         if (old != null) return old;
         var world = colony.getWorld();

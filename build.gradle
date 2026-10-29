@@ -26,6 +26,13 @@ tasks.register('smokeClient', JavaExec) {
     workingDir = file('run')
     systemProperty 'colony_mca.uiPreview', providers.gradleProperty('uiPreview').getOrElse('false')
     systemProperty 'colony_mca.gameplayVerify', providers.gradleProperty('gameplayVerify').getOrElse('false')
+    systemProperty 'colony_mca.extendedVerify', providers.gradleProperty('extendedVerify').getOrElse('false')
+    systemProperty 'colony_mca.colonyVerify', providers.gradleProperty('colonyVerify').getOrElse('false')
+    systemProperty 'colony_mca.workVerify', providers.gradleProperty('workVerify').getOrElse('false')
+    systemProperty 'colony_mca.persistenceVerify', providers.gradleProperty('persistenceVerify').getOrElse('')
+    systemProperty 'colony_mca.logisticsVerify', providers.gradleProperty('logisticsVerify').getOrElse('false')
+    systemProperty 'colony_mca.defenseVerify', providers.gradleProperty('defenseVerify').getOrElse('false')
+    systemProperty 'colony_mca.socialVerify', providers.gradleProperty('socialVerify').getOrElse('false')
     doFirst {
         if (!Boolean.parseBoolean(providers.gradleProperty('uiPreview').getOrElse('false'))) {
             delete file('build/ui-smoke/result.txt')

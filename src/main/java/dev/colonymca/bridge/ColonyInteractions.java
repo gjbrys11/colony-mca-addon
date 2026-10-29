@@ -15,6 +15,8 @@ public final class ColonyInteractions extends VillagerCommandHandler {
         this.citizen = citizen;
     }
 
+    public EntityCitizen citizen() { return citizen; }
+
     @Override public boolean handle(ServerPlayer player, String command) {
         if (player.level() != citizen.level() || player.distanceToSqr(citizen) > 64
                 || !citizen.isAlive() || citizen.getCitizenData() == null) return false;
