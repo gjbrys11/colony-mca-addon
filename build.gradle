@@ -33,6 +33,8 @@ tasks.register('smokeClient', JavaExec) {
     systemProperty 'colony_mca.logisticsVerify', providers.gradleProperty('logisticsVerify').getOrElse('false')
     systemProperty 'colony_mca.defenseVerify', providers.gradleProperty('defenseVerify').getOrElse('false')
     systemProperty 'colony_mca.socialVerify', providers.gradleProperty('socialVerify').getOrElse('false')
+    systemProperty 'colony_mca.burialVerify', providers.gradleProperty('burialVerify').getOrElse('false')
+    systemProperty 'colony_mca.chunkVerify', providers.gradleProperty('chunkVerify').getOrElse('false')
     doFirst {
         if (!Boolean.parseBoolean(providers.gradleProperty('uiPreview').getOrElse('false'))) {
             delete file('build/ui-smoke/result.txt')

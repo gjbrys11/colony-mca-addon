@@ -21,11 +21,24 @@ public final class DefenseAcceptance {
     private static net.minecraft.world.entity.monster.Zombie enemy;
     private static int ticks, stage;
     private static boolean done, sawBowUse;
+    private static net.minecraft.world.phys.Vec3 followStart;
+    private static double initialDistance;
     private static final Path RESULT=Path.of("../build/gameplay-preview/defense.txt");
     @SubscribeEvent public static void tick(ServerTickEvent.Post event) {
         if(!Boolean.getBoolean("colony_mca.defenseVerify") || !GameplayPreview.ready() || done)return;
         try {
             var world=event.getServer().overworld(); var player=event.getServer().getPlayerList().getPlayers().getFirst();
+            if(stage==2) {
+                if(guard.position().distanceToSqr(followStart)>1 && guard.distanceToSqr(player)<initialDistance-1) {
+                    MovementBridge.command(guard,player,net.conczin.mca.entity.ai.MoveState.MOVE);
+                    if(((CitizenMcaData)guard.getCitizenData()).colonyMca$getControl().contains("movement") || guard.getCitizenData().isPaused())
+                        throw new AssertionError("Ending post-combat follow did not restore native work state");
+                    Files.writeString(RESULT,"PASS: native knight/archer AI defeated zombies with MCA stay retained; real bow use observed; after combat archer actually resumed follow movement and then restored native work state");
+                    done=true;return;
+                }
+                if(++ticks>600)throw new AssertionError("Guard did not resume follow after combat");
+                return;
+            }
             if(guard==null) {
                 if(stage==0) Files.deleteIfExists(RESULT);
                 event.getServer().setDifficulty(net.minecraft.world.Difficulty.NORMAL,true);
@@ -58,8 +71,9 @@ public final class DefenseAcceptance {
                 guard.setTarget(null);
                 if(stage==0){stage=1;guard=null;ticks=0;return;}
                 if(!sawBowUse)throw new AssertionError("Archer never entered actual bow-use state");
-                Files.writeString(RESULT,"PASS: native knight and archer AI each killed a zombie with MCA stay active; actual bow use observed; native guard jobs, MCA appearances and stored stay commands retained");
-                ColonyMca.LOGGER.info("Native knight and archer combat acceptance passed");done=true;
+                MovementBridge.command(guard,player,net.conczin.mca.entity.ai.MoveState.FOLLOW);
+                followStart=guard.position();player.teleportTo(guard.getX(),guard.getY(),guard.getZ()+8);initialDistance=guard.distanceToSqr(player);
+                stage=2;ticks=0;Files.writeString(RESULT,"RUNNING: native combat passed; testing actual post-combat follow");
             } else if(ticks%200==0)Files.writeString(RESULT,"RUNNING ticks="+ticks+" enemyHealth="+enemy.getHealth()+" weapon="+guard.getMainHandItem()+
                     " state="+guard.getCitizenData().getJob().getWorkerAI().getState()+" citizenState="+guard.getCitizenAI().getState()+" pos="+guard.blockPosition());
             if(ticks>2400)throw new AssertionError("Knight did not defeat target within 2 minutes: "+Files.readString(RESULT));

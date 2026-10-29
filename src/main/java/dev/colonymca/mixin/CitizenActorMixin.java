@@ -37,6 +37,7 @@ public abstract class CitizenActorMixin implements CitizenMcaActor, VillagerLike
     @Unique private static final EntityDataAccessor<CompoundTag> colonyMca$SYNC =
             SynchedEntityData.defineId(EntityCitizen.class, EntityDataSerializers.COMPOUND_TAG);
     @Unique private VillagerEntityMCA colonyMca$actor;
+    @Unique private com.minecolonies.api.colony.ICitizenData colonyMca$boundData;
     @Unique private ColonyInteractions colonyMca$interactions;
     @Unique private CompoundTag colonyMca$lastClientData;
 
@@ -47,6 +48,13 @@ public abstract class CitizenActorMixin implements CitizenMcaActor, VillagerLike
 
     @Override public VillagerEntityMCA colonyMca$actor() {
         var citizen = (EntityCitizen) (Object) this;
+        // Chunk loading may expose the world entity before its colony data has been linked.
+        // Discard any provisional delegate when authoritative data first becomes available.
+        if (!citizen.level().isClientSide && citizen.getCitizenData() != null
+                && colonyMca$boundData != citizen.getCitizenData()) {
+            colonyMca$actor = null;
+            colonyMca$boundData = citizen.getCitizenData();
+        }
         if (colonyMca$actor == null) {
             colonyMca$actor = (citizen.isFemale() ? EntitiesMCA.FEMALE_VILLAGER : EntitiesMCA.MALE_VILLAGER)
                     .create(citizen.level());
@@ -86,6 +94,7 @@ public abstract class CitizenActorMixin implements CitizenMcaActor, VillagerLike
     @Override public void colonyMca$flush() {
         var citizen = (EntityCitizen) (Object) this;
         if (colonyMca$actor == null || citizen.level().isClientSide) return;
+        if (citizen.getCitizenData() != null && colonyMca$boundData != citizen.getCitizenData()) colonyMca$actor();
         if (citizen.getCitizenData() != null) {
             var inventory = colonyMca$actor.getInventory();
             for (int slot = 0; slot < inventory.getContainerSize(); slot++) {

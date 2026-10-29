@@ -19,6 +19,14 @@ public final class ColonyMca {
 
     public ColonyMca(IEventBus modBus, ModContainer container) {
         modBus.addListener(this::registerNetwork);
+        modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) -> event.enqueueWork(() -> {
+                var colonyBus=com.minecolonies.api.IMinecoloniesAPI.getInstance().getEventBus();
+                colonyBus.subscribe(
+                        com.minecolonies.api.eventbus.events.colony.citizens.CitizenBuriedModEvent.class,
+                        ResurrectionBridge::buried);
+                colonyBus.subscribe(com.minecolonies.api.eventbus.events.colony.citizens.CitizenAddedModEvent.class,
+                        ResurrectionBridge::restored);
+        }));
         container.registerConfig(ModConfig.Type.COMMON, IntegrationConfig.SPEC);
         NeoForge.EVENT_BUS.addListener(this::beforeServerStart);
         NeoForge.EVENT_BUS.addListener(CitizenEvents::join);

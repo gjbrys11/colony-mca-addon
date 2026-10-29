@@ -209,8 +209,13 @@ public final class ServerSmokeChecks {
 
     private static void verifyMovementAndInventory(net.minecraft.server.level.ServerLevel world) {
         var citizen = (com.minecolonies.core.entity.citizen.EntityCitizen) ModEntities.CITIZEN.create(world);
+        var provisionalActor = ((CitizenMcaActor)citizen).colonyMca$actor();
+        provisionalActor.setHairDye(0xff123456);
+        var authoritativeProfile = new CompoundTag(); provisionalActor.addAdditionalSaveData(authoritativeProfile);
+        provisionalActor.setHairDye(0xff654321);
         var control = new java.util.concurrent.atomic.AtomicReference<>(new CompoundTag());
         var profile = new java.util.concurrent.atomic.AtomicReference<>(new CompoundTag());
+        profile.set(authoritativeProfile);
         var paused = new java.util.concurrent.atomic.AtomicBoolean();
         var allowed = new java.util.concurrent.atomic.AtomicBoolean(true);
         var inventory = new com.minecolonies.api.inventory.InventoryCitizen("Integration regression", false);
@@ -256,6 +261,10 @@ public final class ServerSmokeChecks {
                     default -> method.getReturnType() == boolean.class ? false : null;
                 });
         citizen.setCivilianData(data);
+        ((CitizenMcaActor)citizen).colonyMca$flush();
+        var boundActor = ((CitizenMcaActor)citizen).colonyMca$actor();
+        check(boundActor != provisionalActor && boundActor.getHairDye() == 0xff123456,
+                "late colony data binding replaces provisional MCA delegate with saved authoritative profile");
         var player = new net.minecraft.server.level.ServerPlayer(world.getServer(), world,
                 new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "IntegrationTester"),
                 net.minecraft.server.level.ClientInformation.createDefault());
