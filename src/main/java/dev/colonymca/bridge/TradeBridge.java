@@ -20,7 +20,7 @@ public final class TradeBridge {
     public static void advanceCareer(VillagerEntityMCA actor) {
         var customer = actor.getTradingPlayer();
         if (customer != null && (!customer.isAlive() || customer.isRemoved() || customer.level() != actor.level()
-                || customer.distanceToSqr(actor) > 64)) {
+                || customer.distanceToSqr(actor) > 64 || !canTradeWith(actor,customer))) {
             actor.setTradingPlayer(null);
             if (customer instanceof net.minecraft.server.level.ServerPlayer player) player.closeContainer();
         }
@@ -38,6 +38,17 @@ public final class TradeBridge {
             access.colonyMca$increaseCareer();
             access.colonyMca$setPendingLevel(false);
         }
+    }
+
+    public static boolean canTradeWith(VillagerEntityMCA actor, net.minecraft.world.entity.player.Player customer) {
+        if(!(actor.level() instanceof net.minecraft.server.level.ServerLevel world))return true;
+        var actual=world.getEntity(actor.getUUID());
+        if(actual==actor)return true; // Ordinary MCA merchant retains its own vanilla validity rules.
+        if(!(actual instanceof EntityCitizen citizen) || !citizen.isAlive() || customer.level()!=world
+                || customer.distanceToSqr(citizen)>64)return false;
+        var data=citizen.getCitizenData();
+        return data!=null && data.getColony().getPermissions().hasPermission(customer,
+                com.minecolonies.api.colony.permissions.Action.ACCESS_HUTS);
     }
 
     public static VillagerProfession initialProfession(ICitizenData data, UUID identity) {

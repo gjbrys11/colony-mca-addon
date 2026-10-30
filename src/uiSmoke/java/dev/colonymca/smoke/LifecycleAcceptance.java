@@ -103,6 +103,17 @@ public final class LifecycleAcceptance {
         var extraHome = GameplayPreview.building(colony, new BlockPos(136, 80, 123), com.minecolonies.api.blocks.ModBlocks.blockHutHome);
         extraHome.setBuildingLevel(5); extraHome.setBlueprintPath("fundamentals/residence5.blueprint");
         colony.getCitizenManager().calculateMaxCitizens();
+        // Repeated real-world acceptance runs can legitimately fill the earlier homes.
+        for(var pos:List.of(new BlockPos(116,80,116),new BlockPos(140,80,140),new BlockPos(116,80,140),new BlockPos(140,80,116))) {
+            if(colony.getCitizenManager().getCurrentCitizenCount()<colony.getCitizenManager().getMaxCitizens()
+                    && colony.getServerBuildingManager().getHouseWithSpareBed()!=null)break;
+            var spare=GameplayPreview.building(colony,pos,com.minecolonies.api.blocks.ModBlocks.blockHutHome);
+            spare.setBuildingLevel(5);spare.setBlueprintPath("fundamentals/residence5.blueprint");
+            colony.getCitizenManager().calculateMaxCitizens();
+        }
+        ColonyMca.LOGGER.info("Birth acceptance preconditions: population={}, maximum={}, spareHome={}",
+                colony.getCitizenManager().getCurrentCitizenCount(),colony.getCitizenManager().getMaxCitizens(),
+                colony.getServerBuildingManager().getHouseWithSpareBed()!=null);
         var actor = ((CitizenMcaActor) citizen).colonyMca$actor();
         PlayerSaveData.get(player).endRelationShip(net.conczin.mca.entity.ai.relationship.RelationshipState.SINGLE);
         actor.getRelationships().endRelationShip(net.conczin.mca.entity.ai.relationship.RelationshipState.SINGLE);

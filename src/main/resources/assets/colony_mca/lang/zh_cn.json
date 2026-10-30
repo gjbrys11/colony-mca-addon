@@ -34,5 +34,6 @@
   "colony_mca.colony_not_ready": "殖民地资料尚未同步，请靠近殖民地后重试。",
   "colony_mca.managed_by_colony": "此操作由殖民地系统管理。按住潜行键右键打开殖民地界面。",
   "colony_mca.birth_success": "孩子已加入殖民地，并由殖民地分配住宅。",
-  "colony_mca.birth_unavailable": "暂时无法生育：请检查婚姻、好感、生育间隔、人口上限和空余床位。"
+  "colony_mca.birth_unavailable": "暂时无法生育：请检查婚姻、好感、生育间隔、人口上限和空余床位。",
+  "colony_mca.trade_busy": "这位居民正在与其他玩家交易，请稍后再试。"
 }

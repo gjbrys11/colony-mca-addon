@@ -81,6 +81,24 @@ public final class SocialAcceptance {
             var savedControl=((CitizenMcaData)data).colonyMca$getControl();savedControl.remove("tradeRestockPeriod");((CitizenMcaData)data).colonyMca$setControl(savedControl);
             int oldTick=worker.tickCount;worker.tickCount=200;TradeBridge.tick(worker,actor);worker.tickCount=oldTick;
             check(offer.getUses()==0,"Colony work building triggers native offer restock");
+            var transientTrader=ColonyAcceptance.adult(colony,"Acceptance merchant lifetime");
+            player.teleportTo(transientTrader.getX(),transientTrader.getY(),transientTrader.getZ()-2);
+            send(player,transientTrader,"trade");
+            check(player.containerMenu instanceof net.minecraft.world.inventory.MerchantMenu,"Native merchant menu opens for lifecycle validity test");
+            var menu=player.containerMenu;transientTrader.setHealth(.01f);transientTrader.invulnerableTime=0;
+            transientTrader.hurt(world.damageSources().playerAttack(player),1);
+            check(!transientTrader.isAlive() && !menu.stillValid(player),"Native merchant menu becomes invalid immediately when actual colony citizen dies");
+            player.closeContainer();
+            for(var pos:java.util.List.copyOf(colony.getGraveManager().getGraves().keySet())) {
+                if(world.getBlockEntity(pos) instanceof com.minecolonies.api.tileentities.AbstractTileEntityGrave grave && grave.getGraveData()!=null
+                        && grave.getGraveData().getCitizenDataNBT()!=null && grave.getGraveData().getCitizenDataNBT().hasUUID("colony_mca_identity")
+                        && grave.getGraveData().getCitizenDataNBT().getUUID("colony_mca_identity").equals(transientTrader.getUUID())) {
+                    player.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(net.conczin.mca.registry.ItemsMCA.STAFF_OF_LIFE));
+                    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock(player,InteractionHand.MAIN_HAND,pos,
+                            new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(pos),net.minecraft.core.Direction.UP,pos,false)));
+                    break;
+                }
+            }
             Files.writeString(RESULT,"PASS: "+checks.size()+" real social/boundary checks\n"+String.join("\n",checks));
         } catch(Throwable error) {
             ColonyMca.LOGGER.error("Real social boundary acceptance failed",error);

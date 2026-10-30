@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "dev.colonymca.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["SpawnQueueMixin", "CitizenHappinessMixin", "CitizenDataMixin", "CitizenActorMixin", "ReproductionMixin", "PregnancyMixin", "ChildGrowthMixin", "ActorAgeMixin", "LetterPagesMixin", "GraveyardRestingAccessor", "DialoguePacketMixin", "VillagerDataPacketMixin", "ActorInteractionsMixin", "WalkAnimationStateAccessor", "VillagerTradeAccessor", "LivingEntityUseAccessor"],
+  "mixins": ["SpawnQueueMixin", "CitizenHappinessMixin", "CitizenDataMixin", "CitizenActorMixin", "ReproductionMixin", "PregnancyMixin", "ChildGrowthMixin", "ActorAgeMixin", "LetterPagesMixin", "GraveyardRestingAccessor", "MerchantValidityMixin", "DialoguePacketMixin", "VillagerDataPacketMixin", "ActorInteractionsMixin", "WalkAnimationStateAccessor", "VillagerTradeAccessor", "LivingEntityUseAccessor"],
   "client": ["InteractScreenMixin", "CitizenWindowMixin", "CitizenWindowLayoutMixin", "SidebarDialogueMixin", "CitizenDebugWindowMixin"],
   "injectors": { "defaultRequire": 1 }
 }

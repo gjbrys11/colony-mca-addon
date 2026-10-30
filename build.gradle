@@ -23,7 +23,10 @@ tasks.register('smokeClient', JavaExec) {
     dependsOn tasks.named('prepareClientRun'), tasks.named('uiSmokeClasses')
     classpath = sourceSets.main.output + sourceSets.uiSmoke.output + configurations.smokeRuntime
     mainClass = 'cpw.mods.bootstraplauncher.BootstrapLauncher'
-    workingDir = file('run')
+    def peerClient = providers.gradleProperty('peerRole').getOrElse('') == 'client'
+    workingDir = file(peerClient ? 'run/peer' : 'run')
+    systemProperty 'colony_mca.peerRole', providers.gradleProperty('peerRole').getOrElse('')
+    systemProperty 'colony_mca.testRoot', file('build/gameplay-preview').absolutePath
     systemProperty 'colony_mca.uiPreview', providers.gradleProperty('uiPreview').getOrElse('false')
     systemProperty 'colony_mca.gameplayVerify', providers.gradleProperty('gameplayVerify').getOrElse('false')
     systemProperty 'colony_mca.extendedVerify', providers.gradleProperty('extendedVerify').getOrElse('false')
@@ -35,21 +38,24 @@ tasks.register('smokeClient', JavaExec) {
     systemProperty 'colony_mca.socialVerify', providers.gradleProperty('socialVerify').getOrElse('false')
     systemProperty 'colony_mca.burialVerify', providers.gradleProperty('burialVerify').getOrElse('false')
     systemProperty 'colony_mca.chunkVerify', providers.gradleProperty('chunkVerify').getOrElse('false')
+    systemProperty 'colony_mca.funeralVerify', providers.gradleProperty('funeralVerify').getOrElse('false')
     doFirst {
-        if (!Boolean.parseBoolean(providers.gradleProperty('uiPreview').getOrElse('false'))) {
+        workingDir.mkdirs()
+        if (!peerClient && !Boolean.parseBoolean(providers.gradleProperty('uiPreview').getOrElse('false'))) {
             delete file('build/ui-smoke/result.txt')
         }
         jvmArgs "@${layout.buildDirectory.file('moddev/clientRunVmArgs.txt').get().asFile.absolutePath}"
         def arguments = layout.buildDirectory.file('moddev/clientRunProgramArgs.txt').get().asFile.readLines()
                 .findAll { !it.isBlank() && !it.startsWith('#') }
         args arguments.drop(1)
-        args '--quickPlaySingleplayer', 'ui-smoke', '--width', '1100', '--height', '740'
+        if (peerClient) args '--username', 'AcceptancePeer', '--accessToken', '0', '--quickPlayMultiplayer', '127.0.0.1:25579', '--width', '640', '--height', '480'
+        else args '--quickPlaySingleplayer', 'ui-smoke', '--width', '1100', '--height', '740'
         environment 'MOD_CLASSES', (sourceSets.main.output.files + sourceSets.uiSmoke.output.files).collect {
             "colony_mca%%${it.absolutePath}"
         }.join(File.pathSeparator)
     }
     doLast {
-        if (!Boolean.parseBoolean(providers.gradleProperty('uiPreview').getOrElse('false'))) {
+        if (!peerClient && !Boolean.parseBoolean(providers.gradleProperty('uiPreview').getOrElse('false'))) {
             def result = file('build/ui-smoke/result.txt')
             if (!result.exists() || !result.text.startsWith('PASS:'))
                 throw new GradleException("UI checks failed: ${result.exists() ? result.text : 'no result'}")

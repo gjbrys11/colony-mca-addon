@@ -34,5 +34,6 @@
   "colony_mca.colony_not_ready": "Colony data is not available yet. Move closer to the colony and try again.",
   "colony_mca.managed_by_colony": "Managed by MineColonies. Sneak and right-click to open colony controls.",
   "colony_mca.birth_success": "Your child has joined the colony and received a colony housing assignment.",
-  "colony_mca.birth_unavailable": "Cannot have a child yet. Check marriage, hearts, cooldown, population limit and spare beds."
+  "colony_mca.birth_unavailable": "Cannot have a child yet. Check marriage, hearts, cooldown, population limit and spare beds.",
+  "colony_mca.trade_busy": "This citizen is trading with another player. Please try again shortly."
 }

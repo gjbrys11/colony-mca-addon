@@ -292,6 +292,9 @@ public final class ServerSmokeChecks {
         check(!paused.get() && !control.get().contains("movement"), "unauthorized movement cannot pause colony worker");
         var actor = ((CitizenMcaActor) citizen).colonyMca$actor();
         actor.getInventory().addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND, 3));
+        allowed.set(true);
+        check(!dev.colonymca.bridge.TradeBridge.canTradeWith(actor,player),
+                "off-world MCA delegate cannot keep trading without its actual world citizen");
         ((CitizenMcaActor) citizen).colonyMca$flush();
         int diamonds = 0;
         for (int slot = 0; slot < inventory.getSlots(); slot++) {

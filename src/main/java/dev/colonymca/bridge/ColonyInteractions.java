@@ -44,7 +44,14 @@ public final class ColonyInteractions extends VillagerCommandHandler {
                 && !entity.getRelationships().isMarriedTo(player.getUUID())) return false;
         if (action.equals("adopt") && (!citizen.isBaby()
                 || !entity.getRelationships().getFamilyEntry().getParents().allMatch(n -> n.isDeceased()))) return false;
-        if (action.equals("trade") && (citizen.isBaby() || !entity.canTradeWithProfession())) return false;
+        if (action.equals("trade")) {
+            if (citizen.isBaby() || !entity.canTradeWithProfession()) return false;
+            // Packet commands bypass vanilla mobInteract's isTrading guard. Keep its single-customer rule.
+            if (entity.getTradingPlayer() != null) {
+                if(entity.getTradingPlayer()!=player) player.displayClientMessage(Component.translatable("colony_mca.trade_busy"),true);
+                return false;
+            }
+        }
         boolean close = super.handle(player, command);
         FamilyBridge.synchronize(citizen);
         ((CitizenMcaActor) citizen).colonyMca$flush();
