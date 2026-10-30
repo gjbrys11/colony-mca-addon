@@ -63,6 +63,13 @@ public final class MultiplayerAcceptance {
                     net.neoforged.neoforge.network.PacketDistributor.sendToServer(new dev.colonymca.network.CitizenPanelRequest(subject.getId()));
             }catch(Exception error){ColonyMca.LOGGER.error("Peer panel validation failed",error);}
         }
+        if(Files.exists(file("loot-expected.txt")) && !Files.exists(file("loot-peer.txt")) && mc.player!=null) {
+            try {
+                String expected=Files.readString(file("loot-expected.txt"));
+                if(!expected.isBlank() && expected.equals(LootCatalogSnapshot.books()))
+                    Files.writeString(file("loot-peer.txt"),"PASS: all native enchanted-book catalog entries and levels match host before login");
+            } catch(Exception error) { ColonyMca.LOGGER.error("Loot catalog peer check failed",error); }
+        }
         if(!Files.exists(file("peer-command.txt")))return;
         try {
             var parts=Files.readString(file("peer-command.txt")).trim().split("\\|");
@@ -86,17 +93,22 @@ public final class MultiplayerAcceptance {
             if(stage==0) {
                 Files.createDirectories(file(".").normalize());Files.deleteIfExists(file("peer-command.txt"));Files.deleteIfExists(file("peer-ack.txt"));Files.deleteIfExists(file("peer-panel.txt"));Files.deleteIfExists(file("multiplayer.txt"));
                 citizenId=citizen.getUUID();data.setPaused(true);citizen.getNavigation().stop();
+                Files.deleteIfExists(file("loot-peer.txt"));
+                String books=LootCatalogSnapshot.books();
+                if(books.isBlank())throw new AssertionError("Host loot catalog has no enchanted books");
+                Files.writeString(file("loot-expected.txt"),books);
                 server.setUsesAuthentication(false);server.getConnection().startTcpServerListener(java.net.InetAddress.getByAddress(new byte[]{127,0,0,1}),25579);
                 var published=server.getClass().getDeclaredField("publishedPort");published.setAccessible(true);published.setInt(server,25579);
                 ColonyMca.LOGGER.info("Acceptance host listening on explicit IPv4 loopback 127.0.0.1:25579");
                 Files.writeString(file("peer-ready.txt"),"READY: loopback-only NeoForge server 127.0.0.1:25579");next(1);
-            } else if(stage==1 && peer!=null) {
+            } else if(stage==1 && peer!=null && Files.exists(file("loot-peer.txt"))) {
                 if(!peerPrepared) {
                 permissions.addPlayer(peer.getGameProfile(),permissions.getRankOfficer());
                 permissions.setPlayerRank(peer.getUUID(),permissions.getRankOfficer(),world);
                 owner.teleportTo(citizen.getX(),citizen.getY(),citizen.getZ()-2);peer.teleportTo(citizen.getX(),citizen.getY(),citizen.getZ()+2);
                 peer.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
                 check(server.getPlayerList().getPlayerCount()>=2,"Two real NeoForge clients connected with separate player identities");
+                check(Files.readString(file("loot-peer.txt")).startsWith("PASS:"),"Real peer receives every host enchanted-book catalog entry with original levels and loot metadata");
                 peerPrepared=true;peerCommand("panel");
                 }
                 if(Files.exists(file("peer-panel.txt")) && Files.readString(file("peer-panel.txt")).startsWith("PASS:")) {

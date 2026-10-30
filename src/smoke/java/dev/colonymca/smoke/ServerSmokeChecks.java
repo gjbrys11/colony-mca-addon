@@ -28,6 +28,7 @@ public final class ServerSmokeChecks {
             try {
                 checks = 0;
                 var world = event.getServer().overworld();
+                checks += LootRegistryChecks.run(world);
                 check(!Config.getInstance().overwriteOriginalVillagers, "vanilla conversion disabled");
                 check(!Config.getInstance().enableInfection, "infection disabled");
                 var vanilla = EntityType.VILLAGER.create(world);
