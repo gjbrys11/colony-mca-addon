@@ -35,5 +35,12 @@
   "colony_mca.managed_by_colony": "此操作由殖民地系统管理。按住潜行键右键打开殖民地界面。",
   "colony_mca.birth_success": "孩子已加入殖民地，并由殖民地分配住宅。",
   "colony_mca.birth_unavailable": "暂时无法生育：请检查婚姻、好感、生育间隔、人口上限和空余床位。",
-  "colony_mca.trade_busy": "这位居民正在与其他玩家交易，请稍后再试。"
+  "colony_mca.trade_busy": "这位居民正在与其他玩家交易，请稍后再试。",
+  "colony_mca.terminal.title": "殖民地远程终端",
+  "colony_mca.terminal.search": "搜索殖民地或建筑",
+  "colony_mca.terminal.refresh": "刷新",
+  "colony_mca.terminal.empty": "当前维度没有可访问的殖民地建筑",
+  "colony_mca.terminal.denied": "你无权访问该建筑，或建筑已被移除。",
+  "colony_mca.terminal.key": "打开殖民地远程终端",
+  "key.categories.colony_mca": "殖民地 MCA"
 }

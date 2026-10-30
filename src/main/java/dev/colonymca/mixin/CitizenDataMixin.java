@@ -15,6 +15,11 @@ import java.util.UUID;
 
 @Mixin(value = CitizenData.class, remap = false)
 public abstract class CitizenDataMixin implements CitizenMcaData {
+    // Pathing Edition cancels update at HEAD, so Tweaks' TAIL leisure reset is otherwise skipped.
+    @Inject(method="getLeisureTime",at=@At("HEAD"),cancellable=true)
+    private void colonyMca$respectLeisureSetting(CallbackInfoReturnable<Integer> cir) {
+        if(steve_gall.minecolonies_tweaks.core.common.config.MCTweaksConfigServer.INSTANCE.jobs.disableLeisure.get())cir.setReturnValue(0);
+    }
     @Unique private CompoundTag colonyMca$data = new CompoundTag();
     @Unique private UUID colonyMca$identity;
     @Unique private CompoundTag colonyMca$control = new CompoundTag();

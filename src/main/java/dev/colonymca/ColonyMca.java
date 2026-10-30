@@ -37,7 +37,11 @@ public final class ColonyMca {
     }
 
     private void registerNetwork(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("3");
+        var registrar = event.registrar("4");
+        registrar.playToServer(dev.colonymca.network.TerminalRequest.TYPE,dev.colonymca.network.TerminalRequest.STREAM_CODEC,
+                (payload,context)->context.enqueueWork(()->payload.handle((net.minecraft.server.level.ServerPlayer)context.player())));
+        registrar.playToClient(dev.colonymca.network.TerminalSnapshot.TYPE,dev.colonymca.network.TerminalSnapshot.STREAM_CODEC,
+                (payload,context)->context.enqueueWork(()->dev.colonymca.client.RemoteTerminalClient.accept(payload.data())));
         registrar.playToClient(dev.colonymca.network.IntegrationHello.TYPE,
                 dev.colonymca.network.IntegrationHello.STREAM_CODEC, (payload, context) -> {});
         registrar.playToServer(dev.colonymca.network.CitizenPanelRequest.TYPE,

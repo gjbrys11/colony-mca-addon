@@ -35,5 +35,12 @@
   "colony_mca.managed_by_colony": "Managed by MineColonies. Sneak and right-click to open colony controls.",
   "colony_mca.birth_success": "Your child has joined the colony and received a colony housing assignment.",
   "colony_mca.birth_unavailable": "Cannot have a child yet. Check marriage, hearts, cooldown, population limit and spare beds.",
-  "colony_mca.trade_busy": "This citizen is trading with another player. Please try again shortly."
+  "colony_mca.trade_busy": "This citizen is trading with another player. Please try again shortly.",
+  "colony_mca.terminal.title": "Colony Remote Terminal",
+  "colony_mca.terminal.search": "Search colonies or buildings",
+  "colony_mca.terminal.refresh": "Refresh",
+  "colony_mca.terminal.empty": "No accessible colony buildings in this dimension",
+  "colony_mca.terminal.denied": "Access denied or building removed.",
+  "colony_mca.terminal.key": "Open colony remote terminal",
+  "key.categories.colony_mca": "Colony MCA"
 }

@@ -27,7 +27,7 @@ function Write-Zip([string]$Path, [object[]]$Entries) {
 }
 
 $sources = @()
-foreach ($directory in @('src', 'gradle', 'tools')) {
+foreach ($directory in @('src', 'gradle', 'tools', 'profile')) {
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $projectRoot $directory) -Recurse -File) {
         $sources += @{ Source=$file.FullName; Name=[IO.Path]::GetRelativePath($projectRoot, $file.FullName).Replace('\','/') }
     }
@@ -37,6 +37,12 @@ foreach ($name in @('.gitignore', 'build.gradle', 'settings.gradle', 'gradle.pro
 }
 Write-Zip (Join-Path $output "colony-mca-addon-$Version-sources.zip") $sources
 $runtime = @(@{ Source=$jarPath; Name="mods/$jarName" })
+foreach($name in @('Fetch-Dependencies.ps1','Install-GameplayProfile.ps1')) {
+    $runtime+=@{Source=(Join-Path $projectRoot "tools/$name");Name="tools/$name"}
+}
+foreach($file in Get-ChildItem -LiteralPath (Join-Path $projectRoot 'profile') -Recurse -File){
+    $runtime+=@{Source=$file.FullName;Name=[IO.Path]::GetRelativePath($projectRoot,$file.FullName).Replace('\','/')}
+}
 foreach ($name in @('README.md', 'CHANGELOG.md', 'TESTING.md', 'LICENSE', 'dependencies.lock.json')) {
     $runtime += @{ Source=(Join-Path $projectRoot $name); Name=$name }
 }

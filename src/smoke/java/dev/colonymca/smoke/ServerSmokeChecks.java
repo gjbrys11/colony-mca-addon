@@ -29,6 +29,7 @@ public final class ServerSmokeChecks {
                 checks = 0;
                 var world = event.getServer().overworld();
                 checks += LootRegistryChecks.run(world);
+                checks += GameplayProfileChecks.run(world);
                 check(!Config.getInstance().overwriteOriginalVillagers, "vanilla conversion disabled");
                 check(!Config.getInstance().enableInfection, "infection disabled");
                 var vanilla = EntityType.VILLAGER.create(world);
@@ -91,6 +92,8 @@ public final class ServerSmokeChecks {
                             return null;
                         });
                 var data = new CitizenData(1, colony);
+                var leisureField=CitizenData.class.getDeclaredField("leisureTime");leisureField.setAccessible(true);leisureField.setInt(data,1200);
+                check(data.getLeisureTime()==0,"Tweaks disable-leisure setting survives Pathing Edition early-cancel update");
                 var bridge = (CitizenMcaData) data;
                 check(data.getUUID().equals(data.getUUID()), "stable citizen identity");
                 var tag = new CompoundTag(); tag.putString("test", "original");

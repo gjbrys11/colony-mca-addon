@@ -189,6 +189,12 @@ public final class GameplayPreview {
         if (player == null) throw new IllegalStateException("Integrated-server player not found");
         Files.deleteIfExists(Path.of("../build/gameplay-preview/result.txt"));
         var world = player.serverLevel();
+        player.teleportTo(world,128.5,80,124.5,0,0);
+        for(int cx=7;cx<=8;cx++)for(int cz=7;cz<=8;cz++) {
+            if(!com.minecolonies.api.util.WorldUtil.isEntityChunkLoaded(world,cx,cz)) {
+                world.getChunk(cx,cz);starting=false;ticks=0;return;
+            }
+        }
         player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
         player.setHealth(player.getMaxHealth());
         world.setDayTime(6000);
@@ -226,7 +232,8 @@ public final class GameplayPreview {
         if (data.getHomeBuilding() == null && !living.assignCitizen(data)) throw new IllegalStateException("Home assignment failed");
         var work = builder.getFirstModuleOccurance(WorkerBuildingModule.class);
         if (data.getWorkBuilding() == null && !work.assignCitizen(data)) throw new IllegalStateException("Builder assignment failed");
-        colony.getCitizenManager().spawnOrCreateCitizen(data, world, CENTER.offset(0, 0, 1));
+        if(world.getEntity(data.getUUID())==null)
+            colony.getCitizenManager().spawnOrCreateCivilian(data,world,java.util.List.of(CENTER.offset(0,0,1)),true);
         if (!(world.getEntity(data.getUUID()) instanceof com.minecolonies.core.entity.citizen.EntityCitizen citizen))
             throw new IllegalStateException("Native citizen did not spawn");
         citizen.setPos(128.5, 80, 127.5);
@@ -252,11 +259,11 @@ public final class GameplayPreview {
 
     static com.minecolonies.api.colony.buildings.IBuilding building(com.minecolonies.api.colony.IColony colony, BlockPos pos, Block block) {
         var old = colony.getServerBuildingManager().getBuilding(pos);
-        if (old != null) return old;
         var world = colony.getWorld();
-        world.setBlockAndUpdate(pos, block.defaultBlockState());
+        if(!(world.getBlockEntity(pos) instanceof AbstractTileEntityColonyBuilding))world.setBlockAndUpdate(pos, block.defaultBlockState());
         if (!(world.getBlockEntity(pos) instanceof AbstractTileEntityColonyBuilding tile))
             throw new IllegalStateException("Missing native building block entity at " + pos);
+        if(old!=null){tile.setColony(colony);tile.setBuilding(old);return old;}
         var result = colony.getServerBuildingManager().addNewBuilding(tile, world);
         if (result == null) throw new IllegalStateException("Could not register building at " + pos);
         return result;

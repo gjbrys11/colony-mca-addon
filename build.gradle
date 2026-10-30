@@ -39,6 +39,7 @@ tasks.register('smokeClient', JavaExec) {
     systemProperty 'colony_mca.burialVerify', providers.gradleProperty('burialVerify').getOrElse('false')
     systemProperty 'colony_mca.chunkVerify', providers.gradleProperty('chunkVerify').getOrElse('false')
     systemProperty 'colony_mca.funeralVerify', providers.gradleProperty('funeralVerify').getOrElse('false')
+    systemProperty 'colony_mca.terminalVerify', providers.gradleProperty('terminalVerify').getOrElse('false')
     doFirst {
         workingDir.mkdirs()
         if (!peerClient && !Boolean.parseBoolean(providers.gradleProperty('uiPreview').getOrElse('false'))) {
@@ -49,7 +50,7 @@ tasks.register('smokeClient', JavaExec) {
                 .findAll { !it.isBlank() && !it.startsWith('#') }
         args arguments.drop(1)
         if (peerClient) args '--username', 'AcceptancePeer', '--accessToken', '0', '--quickPlayMultiplayer', '127.0.0.1:25579', '--width', '640', '--height', '480'
-        else args '--quickPlaySingleplayer', 'ui-smoke', '--width', '1100', '--height', '740'
+        else args '--quickPlaySingleplayer', providers.gradleProperty('smokeWorld').getOrElse('ui-smoke'), '--width', '1100', '--height', '740'
         environment 'MOD_CLASSES', (sourceSets.main.output.files + sourceSets.uiSmoke.output.files).collect {
             "colony_mca%%${it.absolutePath}"
         }.join(File.pathSeparator)
@@ -92,7 +93,8 @@ dependencies {
     implementation files('libs/mca-7.7.36-neoforge.jar')
     implementation files('libs/minecolonies-1.1.1403.jar')
     implementation fileTree(dir: 'libs', include: ['structurize-*.jar', 'blockui-*.jar',
-            'domum-ornamentum-*.jar', 'multipiston-*.jar'])
+            'domum-ornamentum-*.jar', 'multipiston-*.jar', 'colonypathingedition-*.jar',
+            'MineColonies_Tweaks-*.jar', 'material_unification-*.jar', 'kubejs-*.jar', 'rhino-*.jar'])
 }
 
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
@@ -116,20 +118,18 @@ tasks.register('smokeServer', JavaExec) {
     dependsOn tasks.named('prepareServerRun'), tasks.named('smokeClasses')
     classpath = sourceSets.main.output + sourceSets.smoke.output + smokeRuntime
     mainClass = 'cpw.mods.bootstraplauncher.BootstrapLauncher'
-    workingDir = file('run')
+    workingDir = file(providers.gradleProperty('smokeGameDir').getOrElse('run'))
     doFirst {
         workingDir.mkdirs()
         delete file('build/smoke-result.txt')
-        def propertiesFile = file('run/server.properties')
-        if (propertiesFile.exists()) {
+        def propertiesFile = new File(workingDir, 'server.properties')
             def properties = new Properties()
-            propertiesFile.withInputStream { properties.load(it) }
+            if (propertiesFile.exists()) propertiesFile.withInputStream { properties.load(it) }
             properties.setProperty('server-ip', '127.0.0.1')
             properties.setProperty('server-port', '25566')
             properties.setProperty('enable-query', 'false')
             properties.setProperty('enable-rcon', 'false')
             propertiesFile.withOutputStream { properties.store(it, 'Isolated addon smoke-test server') }
-        }
         jvmArgs "@${layout.buildDirectory.file('moddev/serverRunVmArgs.txt').get().asFile.absolutePath}"
         def arguments = layout.buildDirectory.file('moddev/serverRunProgramArgs.txt').get().asFile.readLines()
                 .findAll { !it.isBlank() && !it.startsWith('#') }

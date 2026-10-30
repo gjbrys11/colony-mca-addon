@@ -24,6 +24,7 @@ public final class LogisticsAcceptance {
     private static boolean done,gifted;
     private static ICitizenData courier;
     private static IItemHandler source,target;
+    private static final java.util.List<ItemStack> previousEmeralds=new java.util.ArrayList<>();
     private static final Path RESULT=Path.of("../build/gameplay-preview/logistics.txt");
     @SubscribeEvent public static void tick(ServerTickEvent.Post event) {
         if(!Boolean.getBoolean("colony_mca.logisticsVerify") || !GameplayPreview.ready() || done) return;
@@ -44,6 +45,7 @@ public final class LogisticsAcceptance {
                 colony.getCitizenManager().spawnOrCreateCitizen(courier,world,new BlockPos(120,80,133));
                 var destination=worker.getCitizenData().getHomeBuilding();
                 source=warehouse.getTileEntity().getInventory(); target=destination.getTileEntity().getInventory();
+                for(int slot=0;slot<target.getSlots();slot++)if(target.getStackInSlot(slot).is(Items.EMERALD))previousEmeralds.add(target.extractItem(slot,Integer.MAX_VALUE,false));
                 net.neoforged.neoforge.items.ItemHandlerHelper.insertItemStacked(source,new ItemStack(Items.EMERALD,5),false);
                 if(count(source,Items.EMERALD)!=5 || count(target,Items.EMERALD)!=0)throw new AssertionError("Use clean native inventories for courier fixture");
                 var delivery=new com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery(
@@ -53,8 +55,8 @@ public final class LogisticsAcceptance {
                 Files.writeString(RESULT,"RUNNING: native delivery request="+token);
             }
             ticks++; courier.setSaturation(20);
-            var entity=(EntityCitizen)courier.getEntity().orElseThrow(); var job=(JobDeliveryman)courier.getJob();
-            if(!gifted && job.getCurrentTask()!=null) {
+            var entity=(EntityCitizen)courier.getEntity().orElseThrow(); var job=courier.getJob();
+            if(!gifted && currentTask(job)!=null) {
                 player.teleportTo(entity.getX(),entity.getY(),entity.getZ()-2);
                 player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new ItemStack(Items.DIAMOND));
                 new net.conczin.mca.network.c2s.InteractionVillagerMessage("gift",entity.getUUID()).handleServer(player);
@@ -65,14 +67,21 @@ public final class LogisticsAcceptance {
                 if(count(source,Items.EMERALD)!=0 || count(courier.getInventory(),Items.EMERALD)!=0 || !gifted
                         || ((CitizenMcaActor)entity).colonyMca$actor().getSkin().isBlank())throw new AssertionError("Delivery/gift conservation or model failed");
                 Files.writeString(RESULT,"PASS: real warehouse request and native courier AI moved all 5 emeralds to destination; source and courier hold zero; MCA gift succeeded during active task; native courier job and MCA appearance retained");
+                restorePrevious();
                 ColonyMca.LOGGER.info("Real courier delivery acceptance passed"); done=true;
             } else if(ticks%200==0) Files.writeString(RESULT,"RUNNING ticks="+ticks+" source="+count(source,Items.EMERALD)+" target="+count(target,Items.EMERALD)+
-                    " courier="+count(courier.getInventory(),Items.EMERALD)+" state="+job.getWorkerAI().getState()+" pos="+entity.blockPosition()+" task="+job.getCurrentTask()+" gifted="+gifted);
+                    " courier="+count(courier.getInventory(),Items.EMERALD)+" state="+job.getWorkerAI().getState()+" pos="+entity.blockPosition()+" task="+currentTask(job)+" gifted="+gifted);
             if(ticks>3600)throw new AssertionError("Courier did not complete within 3 minutes: "+Files.readString(RESULT));
         } catch(Throwable error) {
             done=true; ColonyMca.LOGGER.error("Real courier acceptance failed",error);
+            restorePrevious();
             try{Files.writeString(RESULT,"FAIL: "+error);}catch(Exception ignored){}
         }
+    }
+    private static void restorePrevious(){if(target!=null){for(var stack:previousEmeralds)net.neoforged.neoforge.items.ItemHandlerHelper.insertItemStacked(target,stack,false);previousEmeralds.clear();}}
+    private static Object currentTask(com.minecolonies.api.colony.jobs.IJob<?> job){
+        if(job instanceof com.arxyt.colonypathingedition.core.job.NewJobDeliveryman replacement)return replacement.getTaskToDeliver();
+        return ((JobDeliveryman)job).getCurrentTask();
     }
     private static int count(IItemHandler inventory,net.minecraft.world.item.Item item){int count=0;for(int i=0;i<inventory.getSlots();i++)if(inventory.getStackInSlot(i).is(item))count+=inventory.getStackInSlot(i).getCount();return count;}
 }
